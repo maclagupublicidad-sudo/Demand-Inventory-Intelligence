@@ -105,7 +105,7 @@ export interface ProductionCycleConfig {
   durationMonths: number;
   customDays?: number;
   startDate: string;
-  season?: 'general' | 'primavera_verano' | 'otono_invierno' | 'navidad_findeano' | 'escolar'; // Temporada comercial activa
+  season?: 'general' | 'inicio_ano_escolar' | 'dia_mujer' | 'dia_madre' | 'dia_padre' | 'amor_amistad' | 'fin_de_ano'; // Temporada comercial colombiana activa
   defaultScrapRatePercent: number; // Merma global de corte y confección (ej: 5%)
   safetyStockDaysDefault: number; // Días de stock de seguridad (ej: 15 días)
   growthRatePercent: number; // Crecimiento proyectado vs histórico (%)

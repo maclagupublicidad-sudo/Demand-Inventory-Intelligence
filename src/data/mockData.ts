@@ -705,11 +705,11 @@ export const initialGarments: Garment[] = [
 ];
 
 export const initialCycleConfig: ProductionCycleConfig = {
-  id: 'CYCLE-2026-Q3',
-  name: 'Campaña Colección Primavera-Verano (3 Meses)',
+  id: 'CYCLE-2026-COL',
+  name: 'Campaña Colección Inicio de Año & Escolar (3 Meses)',
   durationMonths: 3,
   startDate: '2026-08-01',
-  season: 'primavera_verano',
+  season: 'inicio_ano_escolar',
   defaultScrapRatePercent: 5.0,
   safetyStockDaysDefault: 18,
   growthRatePercent: 12.0,

@@ -95,43 +95,43 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner Control Card */}
-      <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4">
+      <div className="bg-white p-6 rounded-xl border border-[#E6E1D8] shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2 py-0.5 bg-indigo-50 text-[#4F46E5] text-[10px] font-bold rounded-md uppercase tracking-wider border border-indigo-100">
+              <span className="px-2 py-0.5 bg-[#EBF2EC] text-[#3A5A40] text-[10px] font-bold rounded-md uppercase tracking-wider border border-[#D4E3D7]">
                 Ciclo Activo: {cycleConfig.durationMonths} Meses
               </span>
-              <span className="px-2 py-0.5 bg-amber-50 text-amber-800 text-[10px] font-bold rounded-md border border-amber-200">
+              <span className="px-2 py-0.5 bg-[#FDF8EE] text-[#82530C] text-[10px] font-bold rounded-md border border-[#F7E4BF]">
                 {seasonInfo.badge}
               </span>
-              <span className="text-xs text-[#6B7280]">({cycleConfig.name})</span>
+              <span className="text-xs text-[#5F6B61]">({seasonInfo.dates})</span>
             </div>
-            <h2 className="text-lg font-bold text-[#111827] mt-1.5">
-              Gestión de Metas de Demanda & Temporadas
+            <h2 className="text-lg font-bold text-[#1C211D] mt-1.5">
+              Gestión de Metas de Demanda & Temporadas Comerciales
             </h2>
-            <p className="text-xs text-[#6B7280]">
-              Al modificar el horizonte de meses o la temporada, las prendas y los requerimientos de materias primas (MRP) se escalan automáticamente.
+            <p className="text-xs text-[#5F6B61]">
+              Al modificar el horizonte o la temporada del calendario colombiano, las metas por prenda y los requerimientos de materias primas (MRP) se calculan con base en el histórico y factores de estacionalidad.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleAutoProjectFromSeasonAndHorizon}
-              className="px-3.5 py-2 bg-white border border-[#D1D5DB] hover:bg-[#F9FAFB] text-[#374151] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+              className="px-3.5 py-2 bg-white border border-[#D5CEC2] hover:bg-[#FAF8F5] text-[#1C211D] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
               title="Recalcula las metas de todas las prendas multiplicando su demanda mensual histórica por el horizonte y el multiplicador de la temporada"
               id="btn-recalculate-season-demand"
             >
-              <RefreshCw className="w-3.5 h-3.5 text-[#4F46E5]" />
+              <RefreshCw className="w-3.5 h-3.5 text-[#3A5A40]" />
               <span>Sincronizar con {seasonInfo.name}</span>
             </button>
 
             {onOpenCycleModal && (
               <button
                 onClick={onOpenCycleModal}
-                className="px-3.5 py-2 bg-white border border-[#D1D5DB] hover:bg-[#F9FAFB] text-[#374151] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+                className="px-3.5 py-2 bg-white border border-[#D5CEC2] hover:bg-[#FAF8F5] text-[#1C211D] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
               >
-                <Sliders className="w-3.5 h-3.5 text-[#4F46E5]" />
+                <Sliders className="w-3.5 h-3.5 text-[#3A5A40]" />
                 <span>Configurar Ciclo</span>
               </button>
             )}
@@ -139,7 +139,7 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
             {hasChanges && (
               <button
                 onClick={handleSaveAllTargets}
-                className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
+                className="px-4 py-2 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
                 id="btn-save-targets"
               >
                 <Save className="w-3.5 h-3.5" />
@@ -150,14 +150,14 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
         </div>
 
         {/* Quick Horizon & Season Interactive Controls */}
-        <div className="pt-3 border-t border-[#F3F4F6] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#F9FAFB] p-3 rounded-lg border">
+        <div className="pt-3 border-t border-[#E6E1D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FCFBF9] p-3 rounded-lg border border-[#EAE6DF]">
           {/* Horizon Selection */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-bold text-[#4B5563] flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-[#4F46E5]" />
+            <span className="text-xs font-bold text-[#1C211D] flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-[#3A5A40]" />
               Cambiar Horizonte:
             </span>
-            <div className="inline-flex rounded-lg p-0.5 bg-white border border-[#E5E7EB] text-xs shadow-2xs">
+            <div className="inline-flex rounded-lg p-0.5 bg-white border border-[#E6E1D8] text-xs shadow-2xs">
               {[1, 3, 6, 12].map((months) => (
                 <button
                   key={months}
@@ -169,8 +169,8 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
                   }
                   className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                     cycleConfig.durationMonths === months
-                      ? 'bg-[#4F46E5] text-white shadow-xs'
-                      : 'text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]'
+                      ? 'bg-[#3A5A40] text-white shadow-xs'
+                      : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
                   }`}
                   id={`forecasting-horizon-${months}m`}
                 >
@@ -180,50 +180,52 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
             </div>
           </div>
 
-          {/* Season Selector */}
+          {/* Season Selector Colombia */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#4B5563]">Temporada / Estacionalidad:</span>
+            <span className="text-xs font-bold text-[#1C211D]">Temporada (Colombia):</span>
             <select
               value={currentSeason}
               onChange={(e) => onUpdateCycleConfig({ season: e.target.value as SeasonType })}
-              className="bg-white border border-[#D1D5DB] rounded-lg px-2.5 py-1 text-xs font-semibold text-[#111827] shadow-2xs focus:ring-1 focus:ring-[#4F46E5]"
+              className="bg-white border border-[#D5CEC2] rounded-lg px-2.5 py-1 text-xs font-bold text-[#1C211D] shadow-2xs focus:ring-1 focus:ring-[#3A5A40]"
               id="forecasting-select-season"
             >
-              <option value="primavera_verano">☀️ Primavera - Verano</option>
-              <option value="otono_invierno">❄️ Otoño - Invierno</option>
-              <option value="navidad_findeano">🎁 Fin de Año / Alta (+40%)</option>
-              <option value="escolar">🎒 Escolar / Dotaciones</option>
-              <option value="general">🔄 Línea Continua (Base 1.0x)</option>
+              <option value="inicio_ano_escolar">🎒 Inicio de Año / Escolar (Ene-Feb)</option>
+              <option value="dia_mujer">🌸 Día de la Mujer (Marzo)</option>
+              <option value="dia_madre">💐 Día de la Madre (Mayo)</option>
+              <option value="dia_padre">👔 Día del Padre (Junio)</option>
+              <option value="amor_amistad">❤️ Amor y Amistad (Septiembre)</option>
+              <option value="fin_de_ano">🎄 Fin de Año & Navidad (Nov-Dic)</option>
+              <option value="general">🔄 Línea Continua / Todo el Año (1.0x)</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Target Management Table */}
-      <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="bg-white rounded-xl border border-[#E6E1D8] shadow-xs overflow-hidden">
+        <div className="p-4 border-b border-[#E6E1D8] flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#FCFBF9]">
           <div>
-            <h3 className="font-bold text-sm text-[#111827]">
+            <h3 className="font-bold text-sm text-[#1C211D]">
               Metas de Producción por Prenda ({cycleConfig.durationMonths} Meses • {seasonInfo.name})
             </h3>
-            <p className="text-[11px] text-[#6B7280]">
+            <p className="text-[11px] text-[#5F6B61]">
               La meta neta de confección descuenta el stock de producto terminado y prendas en proceso (WIP).
             </p>
           </div>
 
           <div className="flex items-center gap-4 text-xs font-semibold">
-            <div className="text-[#6B7280]">
-              Meta Total: <span className="text-[#4F46E5] font-bold">{totalPlannedUnits.toLocaleString()} u</span>
+            <div className="text-[#5F6B61]">
+              Meta Total: <span className="text-[#3A5A40] font-bold">{totalPlannedUnits.toLocaleString()} u</span>
             </div>
-            <div className="text-[#6B7280]">
-              A Cortar Neto: <span className="text-emerald-600 font-bold">{totalNetCuttingUnits.toLocaleString()} u</span>
+            <div className="text-[#5F6B61]">
+              A Cortar Neto: <span className="text-[#3A5A40] font-bold">{totalNetCuttingUnits.toLocaleString()} u</span>
             </div>
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#F9FAFB] text-[10px] font-bold uppercase text-[#6B7280] border-b border-[#E5E7EB]">
+            <thead className="bg-[#FAF8F5] text-[10px] font-bold uppercase text-[#5F6B61] border-b border-[#E6E1D8]">
               <tr>
                 <th className="px-4 py-3">Prenda & Referencia</th>
                 <th className="px-4 py-3">Colección / Categoría</th>
@@ -235,7 +237,7 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
                 <th className="px-4 py-3 text-right">Meta de Demanda Planificada</th>
               </tr>
             </thead>
-            <tbody className="text-xs divide-y divide-[#F3F4F6]">
+            <tbody className="text-xs divide-y divide-[#F2EEE6]">
               {garments.map((garment) => {
                 const currentVal =
                   editedTargets[garment.id] !== undefined ? editedTargets[garment.id] : garment.targetSales;
@@ -252,27 +254,27 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
 
                 const seasonBadgeClass =
                   seasonMultiplier > 1.2
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    ? 'bg-[#EBF2EC] text-[#233829] border-[#D4E3D7]'
                     : seasonMultiplier > 1.0
-                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    ? 'bg-[#F4F7EE] text-[#435C2B] border-[#DCE8CB]'
                     : seasonMultiplier < 1.0
-                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                    : 'bg-slate-50 text-slate-600 border-slate-200';
+                    ? 'bg-[#FDF8EE] text-[#82530C] border-[#F7E4BF]'
+                    : 'bg-[#F2EEE6] text-[#5F6B61] border-[#E6E1D8]';
 
                 return (
-                  <tr key={garment.id} className="hover:bg-[#F9FAFB]">
+                  <tr key={garment.id} className="hover:bg-[#FAF8F5]">
                     <td className="px-4 py-3.5">
-                      <div className="font-semibold text-[#111827]">{garment.name}</div>
-                      <div className="text-[10px] text-[#9CA3AF] font-mono">SKU: {garment.sku}</div>
+                      <div className="font-semibold text-[#1C211D]">{garment.name}</div>
+                      <div className="text-[10px] text-[#8F9990] font-mono">SKU: {garment.sku}</div>
                     </td>
 
                     <td className="px-4 py-3.5">
-                      <span className="text-[10px] font-medium bg-[#F3F4F6] text-[#4B5563] px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-medium bg-[#F2EEE6] text-[#5F6B61] px-2 py-0.5 rounded">
                         {garment.category}
                       </span>
                     </td>
 
-                    <td className="px-4 py-3.5 text-right font-mono text-[#6B7280]">
+                    <td className="px-4 py-3.5 text-right font-mono text-[#5F6B61]">
                       {garment.historicalMonthlyAverage.toLocaleString()} u/mes
                     </td>
 
@@ -286,16 +288,16 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
                       </span>
                     </td>
 
-                    <td className="px-4 py-3.5 text-right font-mono text-[#6B7280]">
-                      <span className="font-semibold">{theoretical.toLocaleString()}</span>{' '}
-                      <span className="text-[10px] text-[#9CA3AF]">u ({cycleConfig.durationMonths}m)</span>
+                    <td className="px-4 py-3.5 text-right font-mono text-[#5F6B61]">
+                      <span className="font-semibold text-[#1C211D]">{theoretical.toLocaleString()}</span>{' '}
+                      <span className="text-[10px] text-[#8F9990]">u ({cycleConfig.durationMonths}m)</span>
                     </td>
 
-                    <td className="px-4 py-3.5 text-right font-mono text-[#111827]">
+                    <td className="px-4 py-3.5 text-right font-mono text-[#1C211D]">
                       {garment.finishedGoodsStock.toLocaleString()} u
                     </td>
 
-                    <td className="px-4 py-3.5 text-right font-mono text-blue-600 font-medium">
+                    <td className="px-4 py-3.5 text-right font-mono text-[#3A5A40] font-medium">
                       {garment.productionWIP.toLocaleString()} u
                     </td>
 
@@ -308,12 +310,12 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
                             step="50"
                             value={currentVal}
                             onChange={(e) => handleTargetInputChange(garment.id, parseInt(e.target.value) || 0)}
-                            className="w-28 bg-[#F9FAFB] border border-[#D1D5DB] rounded-lg px-2.5 py-1.5 text-right font-bold text-xs text-[#111827] focus:ring-1 focus:ring-[#4F46E5] focus:bg-white"
+                            className="w-28 bg-[#FAF8F5] border border-[#D5CEC2] rounded-lg px-2.5 py-1.5 text-right font-bold text-xs text-[#1C211D] focus:ring-1 focus:ring-[#3A5A40] focus:bg-white"
                           />
-                          <span className="text-[#6B7280] text-[10px]">u</span>
+                          <span className="text-[#5F6B61] text-[10px]">u</span>
                         </div>
-                        <span className="text-[10px] text-[#6B7280] mt-0.5">
-                          Corte neto: <strong className="text-emerald-700">{netToCut.toLocaleString()} u</strong>
+                        <span className="text-[10px] text-[#5F6B61] mt-0.5">
+                          Corte neto: <strong className="text-[#3A5A40] font-bold">{netToCut.toLocaleString()} u</strong>
                         </span>
                       </div>
                     </td>

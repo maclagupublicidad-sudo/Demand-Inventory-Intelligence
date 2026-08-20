@@ -44,7 +44,7 @@
 | **Frontend Framework** | `React 19` + `TypeScript 5.8` | Componentes funcionales, hooks estrictos y tipado integral |
 | **Build & Dev Server** | `Vite 6` + `TSX` + `Esbuild` | Empaquetado rápido, SSR/HMR proxy y bundling CommonJS (`dist/server.cjs`) |
 | **Backend & Servidor** | `Express 4.21` (Node.js) | Enrutador API, middleware SPA y aislamiento de secretos |
-| **Estilos & Diseño** | `Tailwind CSS 4` | Sistema de diseño de alto contraste "Clean Minimalism" |
+| **Estilos & Diseño** | `Tailwind CSS 4` | Paleta minimalista y productiva en **Blanco Marfil** (`#FAF8F5`, `#FCFBF9`), bordes sutiles y acentos en **Verde Seco Textil** (`#3A5A40`, `#2D4632`) |
 | **Animaciones & UI** | `Motion (Framer Motion 12)` | Transiciones fluidas, modales contextuales y micro-interacciones |
 | **Iconografía** | `Lucide React` | Iconos vectoriales semánticos y accesibles |
 | **Generación Documental** | `jsPDF` | Generación e impresión de Fichas Técnicas (Tech Packs) en formato PDF |
@@ -65,14 +65,16 @@
   - 🔵 **Sobrestock**: Exceso de inventario inmovilizado.
 - **Top 5 Insumos con Mayor Inversión**: Desglose gráfico de los materiales que concentran el mayor presupuesto del ciclo.
 
-### 2. Proyección de Demanda & Estacionalidad Dinámica
+### 2. Proyección de Demanda & Estacionalidad Comercial de Colombia
 - **Configuración de Ciclos**: Horizontes de planeación flexibles (1, 3, 6, 12 meses o duración personalizada en días).
-- **Selector de Temporadas Comerciales**:
-  - 🌸 Primavera / Verano (+15% Vestidos y Tejido de Punto, -20% Chaquetas)
-  - 🍂 Otoño / Invierno (+35% Chaquetería y Pantalones pesados)
-  - 🎄 Navidad / Fin de Año (+50% Camisería elegante y Vestidos de fiesta)
-  - 🎒 Escolar / Dotaciones (+60% Camisas básicas y Pantalones escolares)
-  - ⚙️ Regular / Todo el Año
+- **Selector de Temporadas Comerciales Adaptadas a Colombia**:
+  - 🎒 **Inicio de Año / Temporada Escolar** *(Enero - Febrero)*: Alta demanda de uniformes, camisería básica, pantalones escolares y dotaciones (+65% camisas y pantalones).
+  - 💐 **Día de la Mujer** *(Marzo)*: Repunte comercial en blusas, vestidos y tejido de punto liviano (+20% vestidos).
+  - 👑 **Día de la Madre** *(Mayo)*: Mayor pico de moda femenina, blusas de alta rotación, pantalones casuales y vestidos de diseño (+40% vestidos, +30% blusas).
+  - 👔 **Día del Padre** *(Junio)*: Fuerte incremento en camisería formal, polos, bermudas y chaquetas masculinas (+40% camisas, +25% chaquetas).
+  - ❤️ **Amor y Amistad** *(Septiembre)*: Colecciones de moda casual, vestidos de fiesta, prendas estampadas y dotaciones empresariales (+25% vestidos, +15% camisas).
+  - 🎄 **Fin de Año / Navidad** *(Noviembre - Diciembre)*: Temporada pico anual, estrenos, gala, lino, chaquetas y alta confección (+50% general).
+  - ⚙️ **Regular / Todo el Año**: Producción balanceada de línea básica y reposición continua.
 - **Ajuste Masivo de Metas**: Multiplicadores porcentuales por categoría de prenda (+10%, +25%, -15%).
 - **Cálculo Automático Basado en Históricos**: Proyección basada en promedios históricos ajustados por tasa de crecimiento y estacionalidad.
 
