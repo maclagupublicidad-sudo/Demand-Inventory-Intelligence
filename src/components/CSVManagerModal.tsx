@@ -2,16 +2,13 @@ import React, { useState } from 'react';
 import {
   Upload,
   Download,
-  FileText,
   CheckCircle2,
   AlertCircle,
   X,
   Layers,
   ShoppingBag,
   Package,
-  RefreshCw,
   Info,
-  ArrowRight,
 } from 'lucide-react';
 import {
   downloadCSVTemplate,
@@ -51,7 +48,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
   salesRecords,
 }) => {
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
-  const [activeTab, setActiveTab] = useState<'ventas' | 'materias_primas' | 'fichas_tecnicas' | 'lote_completo'>('lote_completo');
+  const [activeTab] = useState<'ventas' | 'materias_primas' | 'fichas_tecnicas' | 'lote_completo'>('lote_completo');
 
   // Staged files content
   const [salesFile, setSalesFile] = useState<{ name: string; content: string; count: number } | null>(null);
@@ -142,96 +139,79 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
       const res = parseSalesCSV(salesFile.content);
       importedSales = res.data;
     }
-
     if (materialsFile) {
       const res = parseRawMaterialsCSV(materialsFile.content);
       importedMaterials = res.data;
     }
-
     if (bomFile) {
-      // Pass both current materials and newly imported materials to BOM parser
-      const combinedMaterials = [...rawMaterials, ...importedMaterials];
-      const res = parseBOMCSV(bomFile.content, combinedMaterials);
+      const baseMatList = importedMaterials.length > 0 ? importedMaterials : rawMaterials;
+      const res = parseBOMCSV(bomFile.content, baseMatList);
       importedGarments = res.garments;
       discoveredFromBOM = res.discoveredMaterials;
     }
 
-    if (onImportAllDatasets && (importedSales.length > 0 || importedMaterials.length > 0 || importedGarments.length > 0)) {
-      onImportAllDatasets(
-        importedSales,
-        [...importedMaterials, ...discoveredFromBOM],
-        importedGarments,
-        importMode
-      );
-    } else {
-      if (importedMaterials.length > 0) {
-        onImportMaterials([...importedMaterials, ...discoveredFromBOM], importMode);
-      }
-      if (importedGarments.length > 0) {
-        onImportBOMs(importedGarments, discoveredFromBOM, importMode);
-      }
-      if (importedSales.length > 0) {
-        onImportSales(importedSales, importMode);
-      }
+    // Combine discovered materials from BOM if any
+    if (discoveredFromBOM.length > 0) {
+      const existingIds = new Set([
+        ...rawMaterials.map((m) => m.id),
+        ...importedMaterials.map((m) => m.id),
+      ]);
+      const brandNew = discoveredFromBOM.filter((m) => !existingIds.has(m.id));
+      importedMaterials = [...importedMaterials, ...brandNew];
     }
 
-    const totalCount =
-      (salesFile ? `${salesFile.count} ventas` : '') +
-      (materialsFile ? `, ${materialsFile.count} materias primas` : '') +
-      (bomFile ? `, ${bomFile.count} fichas técnicas` : '');
+    if (onImportAllDatasets && (importedSales.length > 0 || importedMaterials.length > 0 || importedGarments.length > 0)) {
+      onImportAllDatasets(importedSales, importedMaterials, importedGarments, importMode);
+    } else {
+      if (importedSales.length > 0) onImportSales(importedSales, importMode);
+      if (importedMaterials.length > 0) onImportMaterials(importedMaterials, importMode);
+      if (importedGarments.length > 0) onImportBOMs(importedGarments, discoveredFromBOM, importMode);
+    }
 
-    setNotification({
-      type: 'success',
-      message: `¡Importación completada con éxito! Se integraron: ${totalCount}. El cálculo MRP y metas se han recalculado automáticamente.`,
-    });
-
-    // Reset staged files
-    setSalesFile(null);
-    setMaterialsFile(null);
-    setBOMFile(null);
+    onClose();
   };
 
-  const hasAnyStaged = salesFile !== null || materialsFile !== null || bomFile !== null;
+  const hasAnyStaged = !!salesFile || !!materialsFile || !!bomFile;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full border border-[#E5E7EB] overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Modal Header */}
-        <div className="p-5 border-b border-[#E5E7EB] flex items-center justify-between bg-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs">
+      <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full border border-[#E6E1D8] overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[90vh]">
+        {/* Header */}
+        <div className="p-4 sm:p-5 border-b border-[#E6E1D8] flex items-center justify-between bg-[#FCFBF9]">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-indigo-50 text-[#4F46E5] rounded-lg">
+            <div className="p-2 bg-[#EBF2EC] text-[#3A5A40] rounded-lg">
               <Upload className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[#111827]">
+              <h3 className="text-sm sm:text-base font-bold text-[#1C211D]">
                 Centro de Carga e Integración de Archivos CSV
               </h3>
-              <p className="text-xs text-[#6B7280]">
+              <p className="text-[11px] text-[#5F6B61]">
                 Cargue sus 3 archivos en conjunto o individualmente sin sobreescrituras accidentales.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#9CA3AF] hover:text-[#111827] hover:bg-[#F9FAFB] transition-colors"
+            className="p-1.5 rounded-lg text-[#8F9990] hover:text-[#1C211D] hover:bg-[#FAF8F5] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Sub-Header: Mode Selector & Template Downloads */}
-        <div className="p-4 bg-[#F9FAFB] border-b border-[#E5E7EB] flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="p-3.5 sm:p-4 bg-[#FAF8F5] border-b border-[#E6E1D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Mode Selector */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#374151]">Modo de Carga:</span>
-            <div className="inline-flex rounded-lg border border-[#E5E7EB] bg-white p-0.5 text-xs">
+            <span className="text-xs font-bold text-[#1C211D]">Modo:</span>
+            <div className="inline-flex rounded-lg border border-[#D5CEC2] bg-white p-0.5 text-xs">
               <button
                 type="button"
                 onClick={() => setImportMode('merge')}
                 className={`px-3 py-1 font-semibold rounded-md transition-colors ${
                   importMode === 'merge'
-                    ? 'bg-[#4F46E5] text-white shadow-2xs'
-                    : 'text-[#6B7280] hover:text-[#111827]'
+                    ? 'bg-[#3A5A40] text-white shadow-2xs'
+                    : 'text-[#5F6B61] hover:text-[#1C211D]'
                 }`}
                 title="Actualiza o agrega por SKU sin borrar los datos existentes de otros archivos"
               >
@@ -242,12 +222,12 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                 onClick={() => setImportMode('replace')}
                 className={`px-3 py-1 font-semibold rounded-md transition-colors ${
                   importMode === 'replace'
-                    ? 'bg-[#4F46E5] text-white shadow-2xs'
-                    : 'text-[#6B7280] hover:text-[#111827]'
+                    ? 'bg-[#3A5A40] text-white shadow-2xs'
+                    : 'text-[#5F6B61] hover:text-[#1C211D]'
                 }`}
                 title="Borra el catálogo anterior e inserta únicamente lo que venga en los archivos"
               >
-                Reemplazar Completo
+                Reemplazar
               </button>
             </div>
           </div>
@@ -256,41 +236,41 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => downloadCSVTemplate('todas')}
-              className="px-3 py-1.5 bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6] text-[#374151] rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors"
+              className="px-3 py-1.5 bg-white border border-[#D5CEC2] hover:bg-[#FAF8F5] text-[#1C211D] rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors active:scale-95"
               title="Descargar plantillas en CSV para Ventas, Materias Primas y Fichas Técnicas"
             >
-              <Download className="w-3.5 h-3.5 text-[#4F46E5]" />
-              <span>Descargar 3 Plantillas CSV</span>
+              <Download className="w-3.5 h-3.5 text-[#3A5A40]" />
+              <span>Plantillas CSV</span>
             </button>
           </div>
         </div>
 
         {/* Modal Main Content Area */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1 text-xs">
           {/* Notification Banner */}
           {notification && (
             <div
               className={`p-3 rounded-lg text-xs font-medium flex items-center gap-2 ${
                 notification.type === 'success'
-                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                  ? 'bg-[#EBF2EC] border border-[#D4E3D7] text-[#233829]'
                   : notification.type === 'error'
-                  ? 'bg-red-50 border border-red-200 text-red-800'
-                  : 'bg-blue-50 border border-blue-200 text-blue-800'
+                  ? 'bg-[#FDF2F0] border border-[#F8D4CF] text-[#B33927]'
+                  : 'bg-[#EEF2F6] border border-[#D0DCE8] text-[#2D4A6E]'
               }`}
             >
-              {notification.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
-              {notification.type === 'error' && <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />}
-              {notification.type === 'info' && <Info className="w-4 h-4 text-blue-600 shrink-0" />}
+              {notification.type === 'success' && <CheckCircle2 className="w-4 h-4 text-[#3A5A40] shrink-0" />}
+              {notification.type === 'error' && <AlertCircle className="w-4 h-4 text-[#B33927] shrink-0" />}
+              {notification.type === 'info' && <Info className="w-4 h-4 text-[#2D4A6E] shrink-0" />}
               <span>{notification.message}</span>
             </div>
           )}
 
           {/* Warnings List */}
           {warnings.length > 0 && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 space-y-1">
+            <div className="p-3 bg-[#FCF6E8] border border-[#F2DEB0] rounded-lg text-xs text-[#8A5016] space-y-1">
               <div className="font-bold flex items-center gap-1.5">
-                <AlertCircle className="w-4 h-4 text-amber-600" />
-                Advertencias detectadas en los archivos:
+                <AlertCircle className="w-4 h-4 text-[#8A5016]" />
+                Advertencias detectadas:
               </div>
               <ul className="list-disc pl-5 text-[11px] space-y-0.5">
                 {warnings.slice(0, 4).map((w, idx) => (
@@ -300,54 +280,54 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
             </div>
           )}
 
-          {/* 3 Datasets Pipeline Visual Status Cards */}
+          {/* 3 Datasets Status Cards */}
           <div className="space-y-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#6B7280]">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#5F6B61]">
               Estado de los 3 Archivos de Configuración Textil
             </h4>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Card 1: Ventas */}
               <div
-                className={`p-4 rounded-xl border transition-all ${
+                className={`p-3.5 rounded-xl border transition-all ${
                   salesFile
-                    ? 'bg-emerald-50/40 border-emerald-300'
+                    ? 'bg-[#EBF2EC] border-[#3A5A40]'
                     : salesRecords.length > 0
-                    ? 'bg-white border-[#E5E7EB]'
-                    : 'bg-[#F9FAFB] border-dashed border-[#D1D5DB]'
+                    ? 'bg-white border-[#E6E1D8]'
+                    : 'bg-[#FAF8F5] border-dashed border-[#D5CEC2]'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <ShoppingBag className={`w-4 h-4 ${salesFile ? 'text-emerald-600' : 'text-[#4F46E5]'}`} />
-                    <span className="font-bold text-xs text-[#111827]">1. Ventas Históricas</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <ShoppingBag className={`w-4 h-4 ${salesFile ? 'text-[#3A5A40]' : 'text-[#5F6B61]'}`} />
+                    <span className="font-bold text-xs text-[#1C211D]">1. Ventas Históricas</span>
                   </div>
                   {salesFile ? (
-                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded">
+                    <span className="px-1.5 py-0.5 bg-[#D4E3D7] text-[#233829] text-[10px] font-bold rounded">
                       Cargado ({salesFile.count})
                     </span>
                   ) : (
-                    <span className="text-[10px] text-[#6B7280]">
+                    <span className="text-[10px] text-[#5F6B61]">
                       {salesRecords.length} en memoria
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[#6B7280]">
+                <p className="text-[11px] text-[#5F6B61]">
                   {salesFile
                     ? `Archivo: ${salesFile.name}`
-                    : 'Proyecta promedios mensuales y demanda del ciclo.'}
+                    : 'Proyecta promedios mensuales y demanda.'}
                 </p>
-                <div className="mt-3 flex items-center justify-between text-[11px]">
+                <div className="mt-2.5 flex items-center justify-between text-[11px]">
                   <button
                     onClick={() => downloadCSVTemplate('ventas')}
-                    className="text-[#4F46E5] hover:underline font-semibold"
+                    className="text-[#3A5A40] hover:underline font-semibold"
                   >
                     Plantilla CSV
                   </button>
                   {salesFile && (
                     <button
                       onClick={() => setSalesFile(null)}
-                      className="text-red-600 hover:underline"
+                      className="text-[#B33927] hover:underline"
                     >
                       Quitar
                     </button>
@@ -357,45 +337,45 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
 
               {/* Card 2: Materias Primas */}
               <div
-                className={`p-4 rounded-xl border transition-all ${
+                className={`p-3.5 rounded-xl border transition-all ${
                   materialsFile
-                    ? 'bg-emerald-50/40 border-emerald-300'
+                    ? 'bg-[#EBF2EC] border-[#3A5A40]'
                     : rawMaterials.length > 0
-                    ? 'bg-white border-[#E5E7EB]'
-                    : 'bg-[#F9FAFB] border-dashed border-[#D1D5DB]'
+                    ? 'bg-white border-[#E6E1D8]'
+                    : 'bg-[#FAF8F5] border-dashed border-[#D5CEC2]'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Package className={`w-4 h-4 ${materialsFile ? 'text-emerald-600' : 'text-[#4F46E5]'}`} />
-                    <span className="font-bold text-xs text-[#111827]">2. Materias Primas</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Package className={`w-4 h-4 ${materialsFile ? 'text-[#3A5A40]' : 'text-[#5F6B61]'}`} />
+                    <span className="font-bold text-xs text-[#1C211D]">2. Materias Primas</span>
                   </div>
                   {materialsFile ? (
-                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded">
+                    <span className="px-1.5 py-0.5 bg-[#D4E3D7] text-[#233829] text-[10px] font-bold rounded">
                       Cargado ({materialsFile.count})
                     </span>
                   ) : (
-                    <span className="text-[10px] text-[#6B7280]">
+                    <span className="text-[10px] text-[#5F6B61]">
                       {rawMaterials.length} en memoria
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[#6B7280]">
+                <p className="text-[11px] text-[#5F6B61]">
                   {materialsFile
                     ? `Archivo: ${materialsFile.name}`
-                    : 'Stock actual, en tránsito, MOQ, costo y proveedores.'}
+                    : 'Stock actual, en tránsito, MOQ y costo.'}
                 </p>
-                <div className="mt-3 flex items-center justify-between text-[11px]">
+                <div className="mt-2.5 flex items-center justify-between text-[11px]">
                   <button
                     onClick={() => downloadCSVTemplate('materias_primas')}
-                    className="text-[#4F46E5] hover:underline font-semibold"
+                    className="text-[#3A5A40] hover:underline font-semibold"
                   >
                     Plantilla CSV
                   </button>
                   {materialsFile && (
                     <button
                       onClick={() => setMaterialsFile(null)}
-                      className="text-red-600 hover:underline"
+                      className="text-[#B33927] hover:underline"
                     >
                       Quitar
                     </button>
@@ -405,45 +385,45 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
 
               {/* Card 3: Fichas Técnicas BOM */}
               <div
-                className={`p-4 rounded-xl border transition-all ${
+                className={`p-3.5 rounded-xl border transition-all ${
                   bomFile
-                    ? 'bg-emerald-50/40 border-emerald-300'
+                    ? 'bg-[#EBF2EC] border-[#3A5A40]'
                     : garments.length > 0
-                    ? 'bg-white border-[#E5E7EB]'
-                    : 'bg-[#F9FAFB] border-dashed border-[#D1D5DB]'
+                    ? 'bg-white border-[#E6E1D8]'
+                    : 'bg-[#FAF8F5] border-dashed border-[#D5CEC2]'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Layers className={`w-4 h-4 ${bomFile ? 'text-emerald-600' : 'text-[#4F46E5]'}`} />
-                    <span className="font-bold text-xs text-[#111827]">3. Fichas Técnicas (BOM)</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Layers className={`w-4 h-4 ${bomFile ? 'text-[#3A5A40]' : 'text-[#5F6B61]'}`} />
+                    <span className="font-bold text-xs text-[#1C211D]">3. Fichas Técnicas</span>
                   </div>
                   {bomFile ? (
-                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded">
+                    <span className="px-1.5 py-0.5 bg-[#D4E3D7] text-[#233829] text-[10px] font-bold rounded">
                       Cargado ({bomFile.count})
                     </span>
                   ) : (
-                    <span className="text-[10px] text-[#6B7280]">
+                    <span className="text-[10px] text-[#5F6B61]">
                       {garments.length} en memoria
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[#6B7280]">
+                <p className="text-[11px] text-[#5F6B61]">
                   {bomFile
                     ? `Archivo: ${bomFile.name}`
-                    : 'Consumos unitarios por prenda, metas y merma de corte.'}
+                    : 'Consumos unitarios por prenda y mermas.'}
                 </p>
-                <div className="mt-3 flex items-center justify-between text-[11px]">
+                <div className="mt-2.5 flex items-center justify-between text-[11px]">
                   <button
                     onClick={() => downloadCSVTemplate('fichas_tecnicas')}
-                    className="text-[#4F46E5] hover:underline font-semibold"
+                    className="text-[#3A5A40] hover:underline font-semibold"
                   >
                     Plantilla CSV
                   </button>
                   {bomFile && (
                     <button
                       onClick={() => setBOMFile(null)}
-                      className="text-red-600 hover:underline"
+                      className="text-[#B33927] hover:underline"
                     >
                       Quitar
                     </button>
@@ -454,7 +434,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
           </div>
 
           {/* Universal Dropzone */}
-          <div className="border-2 border-dashed border-[#D1D5DB] hover:border-[#4F46E5] rounded-xl p-6 text-center transition-colors bg-[#F9FAFB]">
+          <div className="border-2 border-dashed border-[#D5CEC2] hover:border-[#3A5A40] rounded-xl p-5 sm:p-6 text-center transition-colors bg-[#FAF8F5]">
             <input
               type="file"
               accept=".csv,.txt"
@@ -467,59 +447,40 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
               htmlFor="csv-universal-input"
               className="cursor-pointer flex flex-col items-center justify-center space-y-2"
             >
-              <div className="w-12 h-12 rounded-full bg-indigo-50 text-[#4F46E5] flex items-center justify-center">
-                <Upload className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-full bg-[#EBF2EC] text-[#3A5A40] flex items-center justify-center">
+                <Upload className="w-5 h-5" />
               </div>
-              <div className="text-sm font-semibold text-[#111827]">
+              <div className="text-xs sm:text-sm font-semibold text-[#1C211D]">
                 Haga clic para seleccionar o arrastre sus archivos CSV aquí
               </div>
-              <p className="text-xs text-[#6B7280]">
+              <p className="text-[11px] text-[#5F6B61]">
                 Puede seleccionar 1, 2 o los 3 archivos a la vez. El sistema auto-detectará el tipo de cada archivo.
               </p>
             </label>
           </div>
-
-          {/* Helpful Guidance Notice */}
-          <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 text-xs text-[#374151] space-y-1.5">
-            <div className="font-bold text-[#4F46E5] flex items-center gap-1.5">
-              <Info className="w-4 h-4" />
-              ¿Cómo interactúan los archivos en el cálculo MRP?
-            </div>
-            <p className="text-[11px] text-[#4B5563]">
-              1. <strong>Ventas:</strong> Define la demanda real histórica de cada prenda y calcula su promedio mensual.
-            </p>
-            <p className="text-[11px] text-[#4B5563]">
-              2. <strong>Materias Primas:</strong> Establece el catálogo de insumos, stock disponible, tiempos de entrega y costos.
-            </p>
-            <p className="text-[11px] text-[#4B5563]">
-              3. <strong>Fichas Técnicas (BOM):</strong> Conecta las prendas con sus insumos multiplicando el consumo unitario por la meta de ventas.
-            </p>
-          </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-[#E5E7EB] bg-white flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 border-t border-[#E6E1D8] bg-[#FCFBF9] flex items-center justify-between">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-[#6B7280] hover:text-[#111827] transition-colors"
+            className="px-4 py-2 text-xs font-semibold text-[#5F6B61] hover:text-[#1C211D] transition-colors"
           >
             Cerrar
           </button>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleExecuteImport}
-              disabled={!hasAnyStaged}
-              className={`px-5 py-2 rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all ${
-                hasAnyStaged
-                  ? 'bg-[#4F46E5] hover:bg-[#4338CA] text-white cursor-pointer'
-                  : 'bg-[#E5E7EB] text-[#9CA3AF] cursor-not-allowed'
-              }`}
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Procesar e Integrar Datos</span>
-            </button>
-          </div>
+          <button
+            onClick={handleExecuteImport}
+            disabled={!hasAnyStaged}
+            className={`px-5 py-2 rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all active:scale-95 ${
+              hasAnyStaged
+                ? 'bg-[#3A5A40] hover:bg-[#2D4632] text-white cursor-pointer'
+                : 'bg-[#E6E1D8] text-[#8F9990] cursor-not-allowed'
+            }`}
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Procesar e Integrar Datos</span>
+          </button>
         </div>
       </div>
     </div>

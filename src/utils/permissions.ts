@@ -75,6 +75,18 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     category: 'Producción',
   },
   {
+    key: 'view_production_execution',
+    label: 'Ver Ejecución en Planta & Analítica Temporal',
+    description: 'Consultar avance de OPs en tiempo real, auditoría de mermas y curvas de agotamiento.',
+    category: 'Producción',
+  },
+  {
+    key: 'manage_production_orders',
+    label: 'Gestionar Órdenes de Producción (OP) & Mermas',
+    description: 'Lanzar lotes a producción, registrar avance por etapas y reportar consumos reales en corte.',
+    category: 'Producción',
+  },
+  {
     key: 'manage_users',
     label: 'Administrar Usuarios y Permisos',
     description: 'Crear personal, asignar contraseñas, definir roles y restringir accesos.',
@@ -100,6 +112,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, PermissionKey[]> = {
     'view_mrp',
     'edit_mrp_stock',
     'manage_purchase_orders',
+    'view_production_execution',
+    'manage_production_orders',
     'view_costing',
     'edit_costing_rates',
     'manage_production_cycles',
@@ -111,12 +125,14 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, PermissionKey[]> = {
     'view_demand_forecast',
     'edit_sales_targets',
     'view_tech_packs',
+    'view_production_execution',
     'import_export_csv',
   ],
   Ingenieria_BOM: [
     'view_dashboard',
     'view_tech_packs',
     'edit_tech_packs',
+    'view_production_execution',
     'view_costing',
     'import_export_csv',
   ],
@@ -125,11 +141,14 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, PermissionKey[]> = {
     'view_mrp',
     'edit_mrp_stock',
     'manage_purchase_orders',
+    'view_production_execution',
     'view_tech_packs',
     'import_export_csv',
   ],
   Produccion_Taller: [
     'view_dashboard',
+    'view_production_execution',
+    'manage_production_orders',
     'view_tech_packs',
     'view_costing',
     'edit_costing_rates',
@@ -137,11 +156,14 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, PermissionKey[]> = {
   ],
   Calidad_QC: [
     'view_dashboard',
+    'view_production_execution',
+    'manage_production_orders',
     'view_tech_packs',
     'edit_tech_packs',
   ],
   Personalizado: [
     'view_dashboard',
+    'view_production_execution',
   ],
 };
 

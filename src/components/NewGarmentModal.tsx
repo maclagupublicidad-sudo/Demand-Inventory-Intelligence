@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Garment, RawMaterial, BOMItem, MaterialCategory } from '../types';
-import { Plus, X, Scissors, Layers, Check } from 'lucide-react';
+import { Garment, RawMaterial, BOMItem } from '../types';
+import { X, Scissors, Check, Plus, Trash2 } from 'lucide-react';
 
 interface NewGarmentModalProps {
   isOpen: boolean;
@@ -88,182 +88,222 @@ export const NewGarmentModal: React.FC<NewGarmentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-[#E6E1D8] overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[90vh]">
         {/* Header */}
-        <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div className="p-4 sm:p-5 border-b border-[#E6E1D8] flex items-center justify-between bg-[#FCFBF9]">
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-blue-100 text-blue-700 rounded-lg">
+            <div className="p-2 bg-[#EBF2EC] text-[#3A5A40] rounded-lg">
               <Scissors className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Registrar Nueva Prenda de Confección</h3>
-              <p className="text-xs text-slate-500">
+              <h3 className="text-sm sm:text-base font-bold text-[#1C211D]">Registrar Nueva Prenda de Confección</h3>
+              <p className="text-[11px] text-[#5F6B61]">
                 Configure los datos maestros de la prenda y su ficha técnica de materiales inicial.
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-[#8F9990] hover:text-[#1C211D]">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Nombre de la Prenda:</label>
+              <label className="block font-bold text-[#1C211D] mb-1">Nombre de la Prenda:</label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ej. Bermuda Cargo Gabardina"
-                className="w-full p-2 border border-slate-300 rounded-lg font-medium"
+                className="w-full p-2 bg-white border border-[#D5CEC2] rounded-lg font-medium text-[#1C211D] focus:ring-1 focus:ring-[#3A5A40]"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Código SKU:</label>
+              <label className="block font-bold text-[#1C211D] mb-1">Código SKU:</label>
               <input
                 type="text"
                 required
                 value={sku}
                 onChange={(e) => setSku(e.target.value)}
                 placeholder="Ej. BER-CAR-GAB-BEI"
-                className="w-full p-2 border border-slate-300 rounded-lg font-mono uppercase"
+                className="w-full p-2 bg-white border border-[#D5CEC2] rounded-lg font-mono uppercase text-[#1C211D] focus:ring-1 focus:ring-[#3A5A40]"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Categoría:</label>
+              <label className="block font-bold text-[#1C211D] mb-1">Categoría:</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full p-2 border border-slate-300 rounded-lg bg-white"
+                className="w-full p-2 bg-white border border-[#D5CEC2] rounded-lg text-[#1C211D]"
               >
                 <option value="Camisería">Camisería</option>
-                <option value="Pantalonería / Denim">Pantalonería / Denim</option>
-                <option value="Tejido de Punto">Tejido de Punto (Polos/T-Shirts)</option>
-                <option value="Vestidos & Faldas">Vestidos & Faldas</option>
-                <option value="Chaquetería">Chaquetería / Abrigos</option>
-                <option value="Sport / Ropa Deportiva">Sport / Ropa Deportiva</option>
+                <option value="Pantalones">Pantalones</option>
+                <option value="Chaquetas">Chaquetas</option>
+                <option value="Vestidos">Vestidos</option>
+                <option value="Polos">Polos / Camisetas</option>
+                <option value="Ropa Deportiva">Ropa Deportiva</option>
+                <option value="Uniformes">Uniformes</option>
               </select>
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Meta de Ventas del Ciclo (u):</label>
+              <label className="block font-bold text-[#1C211D] mb-1">Meta del Ciclo (u):</label>
               <input
                 type="number"
-                min="10"
+                min="1"
+                required
                 value={targetSales}
                 onChange={(e) => setTargetSales(parseInt(e.target.value) || 0)}
-                className="w-full p-2 border border-slate-300 rounded-lg font-bold"
+                className="w-full p-2 bg-white border border-[#D5CEC2] rounded-lg font-bold text-[#1C211D]"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">P. Venta Estimado (COP):</label>
+              <label className="block font-bold text-[#1C211D] mb-1">P. Venta Público (COP):</label>
               <input
                 type="number"
-                step="500"
+                min="0"
+                step="1000"
+                required
                 value={retailPrice}
                 onChange={(e) => setRetailPrice(parseFloat(e.target.value) || 0)}
-                className="w-full p-2 border border-slate-300 rounded-lg"
+                className="w-full p-2 bg-white border border-[#D5CEC2] rounded-lg font-medium text-[#1C211D]"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block font-bold text-[#1C211D] mb-1">Stock de Producto Terminado (PT):</label>
+              <input
+                type="number"
+                min="0"
+                value={finishedGoodsStock}
+                onChange={(e) => setFinishedGoodsStock(parseInt(e.target.value) || 0)}
+                className="w-full p-2 bg-white border border-[#D5CEC2] rounded-lg text-[#1C211D]"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-[#1C211D] mb-1">En Proceso / WIP (Taller):</label>
+              <input
+                type="number"
+                min="0"
+                value={productionWIP}
+                onChange={(e) => setProductionWIP(parseInt(e.target.value) || 0)}
+                className="w-full p-2 bg-white border border-[#D5CEC2] rounded-lg text-[#1C211D]"
               />
             </div>
           </div>
 
           {/* BOM Section */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-            <h5 className="font-bold text-slate-900 flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-blue-600" />
-              Insumos de la Ficha Técnica (BOM):
-            </h5>
+          <div className="p-3.5 bg-[#FAF8F5] rounded-xl border border-[#E6E1D8] space-y-2.5">
+            <span className="font-bold text-xs text-[#1C211D] block">
+              Estructura de Materiales (BOM Inicial):
+            </span>
 
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
               <div className="sm:col-span-2">
+                <label className="text-[10px] text-[#5F6B61] block mb-0.5">Insumo / Tela:</label>
                 <select
                   value={selectedMatId}
                   onChange={(e) => setSelectedMatId(e.target.value)}
-                  className="w-full p-1.5 border border-slate-300 rounded bg-white text-xs"
+                  className="w-full p-1.5 bg-white border border-[#D5CEC2] rounded-lg text-[#1C211D]"
                 >
-                  <option value="">-- Seleccionar Insumo del Catálogo --</option>
+                  <option value="">Seleccione insumo...</option>
                   {rawMaterials.map((m) => (
                     <option key={m.id} value={m.id}>
-                      [{m.category}] {m.name} ({m.sku})
+                      [{m.sku}] {m.name} ({m.unit})
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
+                <label className="text-[10px] text-[#5F6B61] block mb-0.5">Consumo Unit.:</label>
                 <input
                   type="number"
                   step="0.01"
-                  min="0.001"
-                  placeholder="Consumo"
+                  min="0.01"
                   value={consumption}
                   onChange={(e) => setConsumption(parseFloat(e.target.value) || 0)}
-                  className="w-full p-1.5 border border-slate-300 rounded text-xs text-center"
+                  className="w-full p-1.5 bg-white border border-[#D5CEC2] rounded-lg font-bold text-[#1C211D]"
                 />
               </div>
 
-              <div>
+              <div className="flex items-end">
                 <button
                   type="button"
                   onClick={handleAddBOMComponent}
-                  className="w-full py-1.5 bg-blue-600 text-white rounded font-bold hover:bg-blue-700"
+                  className="w-full p-1.5 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg font-bold flex items-center justify-center gap-1 transition-colors active:scale-95 shadow-2xs"
                 >
-                  + Añadir
+                  <Plus className="w-3.5 h-3.5" />
+                  Agregar
                 </button>
               </div>
             </div>
 
-            {/* Added BOM List */}
-            {bomItems.length > 0 ? (
-              <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                {bomItems.map((item) => (
-                  <div
-                    key={item.rawMaterialId}
-                    className="flex justify-between items-center bg-white p-2 rounded border border-slate-200 text-xs"
-                  >
-                    <div>
-                      <strong className="text-slate-900">{item.rawMaterialName}</strong>
-                      <span className="text-slate-500 ml-2">
-                        {item.quantityPerGarment} {item.unit} (Merma {item.wastePercent}%)
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveBOMItem(item.rawMaterialId)}
-                      className="text-rose-600 hover:text-rose-800"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-[11px] text-slate-400 italic">
-                Ningún insumo añadido aún. Puede agregarlos ahora o editarlos luego en la pestaña de Fichas Técnicas.
-              </p>
-            )}
+            {/* List of added materials */}
+            <div className="border border-[#E6E1D8] rounded-lg overflow-hidden bg-white mt-2">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#FAF8F5] text-[#5F6B61] text-[10px] border-b border-[#E6E1D8]">
+                  <tr>
+                    <th className="p-2">Insumo</th>
+                    <th className="p-2 text-right">Consumo</th>
+                    <th className="p-2 text-center">Acción</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F2EEE6]">
+                  {bomItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="p-3 text-center text-[#8F9990] text-[11px]">
+                        No ha agregado insumos aún (puede completarlos luego en la ficha técnica).
+                      </td>
+                    </tr>
+                  ) : (
+                    bomItems.map((item) => (
+                      <tr key={item.rawMaterialId} className="hover:bg-[#FAF8F5]">
+                        <td className="p-2 font-medium text-[#1C211D]">{item.rawMaterialName}</td>
+                        <td className="p-2 text-right font-bold text-[#1C211D]">
+                          {item.quantityPerGarment} {item.unit}
+                        </td>
+                        <td className="p-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveBOMItem(item.rawMaterialId)}
+                            className="text-[#B33927] p-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
+          {/* Footer */}
+          <div className="flex items-center justify-between pt-3 border-t border-[#E6E1D8]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
+              className="px-4 py-2 text-xs font-semibold text-[#5F6B61] hover:text-[#1C211D]"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-xs flex items-center gap-1.5"
+              className="px-5 py-2 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95"
             >
               <Check className="w-4 h-4" />
               Guardar Prenda

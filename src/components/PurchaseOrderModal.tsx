@@ -5,21 +5,14 @@ import { formatCOP } from '../utils/formatters';
 import {
   ShoppingCart,
   FileText,
-  CheckCircle2,
   Package,
-  Clock,
-  DollarSign,
   Plus,
   Trash2,
   X,
   Search,
-  Filter,
-  Truck,
   Building,
-  Calendar,
-  AlertCircle,
   Save,
-  Check,
+  ChevronLeft,
 } from 'lucide-react';
 
 interface PurchaseOrderModalProps {
@@ -49,6 +42,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'Borrador' | 'Emitida' | 'En Tránsito' | 'Recibida'>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isCreatingManual, setIsCreatingManual] = useState<boolean>(false);
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
 
   // Manual Order Form State
   const [manualSupplier, setManualSupplier] = useState<string>('');
@@ -111,15 +105,15 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Borrador':
-        return 'bg-[#F3F4F6] text-[#374151] border-[#E5E7EB]';
+        return 'bg-[#FAF8F5] text-[#5F6B61] border-[#E6E1D8]';
       case 'Emitida':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'bg-[#EEF2F6] text-[#2D4A6E] border-[#D0DCE8]';
       case 'En Tránsito':
-        return 'bg-indigo-50 text-[#4F46E5] border-indigo-200';
+        return 'bg-[#F4F7EE] text-[#435C2B] border-[#DCE8CB]';
       case 'Recibida':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return 'bg-[#EBF2EC] text-[#233829] border-[#D4E3D7]';
       default:
-        return 'bg-[#F3F4F6] text-[#374151] border-[#E5E7EB]';
+        return 'bg-[#FAF8F5] text-[#5F6B61] border-[#E6E1D8]';
     }
   };
 
@@ -130,6 +124,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
   // Open manual order creation form
   const handleOpenManualCreate = () => {
     setIsCreatingManual(true);
+    setMobileView('detail');
     setManualSupplier(existingSuppliers[0] || 'Proveedor Textil');
     setManualCustomSupplier('');
     setManualDate(new Date().toISOString().split('T')[0]);
@@ -145,75 +140,47 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
     }
   };
 
-  // When material selected in manual form changes, update unit cost and MOQ
   const handleMaterialChange = (matId: string) => {
     setSelectedMaterialId(matId);
     const mat = rawMaterials.find((m) => m.id === matId);
     if (mat) {
-      setItemQuantity(mat.minOrderQuantity || 100);
       setItemUnitCost(mat.unitCost || 0);
+      setItemQuantity(mat.minOrderQuantity || 100);
     }
   };
 
-  // Add item to manual order
   const handleAddItemToManualOrder = () => {
     const mat = rawMaterials.find((m) => m.id === selectedMaterialId);
     if (!mat || itemQuantity <= 0) return;
 
-    // Check if already in manual items
-    const existingIndex = manualItems.findIndex((i) => i.rawMaterialId === mat.id);
-    if (existingIndex >= 0) {
-      setManualItems((prev) =>
-        prev.map((i, idx) =>
-          idx === existingIndex
-            ? {
-                ...i,
-                quantity: i.quantity + itemQuantity,
-                subtotal: (i.quantity + itemQuantity) * itemUnitCost,
-              }
-            : i
-        )
-      );
-    } else {
-      const newItem: PurchaseOrderItem = {
-        rawMaterialId: mat.id,
-        rawMaterialSku: mat.sku,
-        rawMaterialName: mat.name,
-        category: mat.category,
-        quantity: itemQuantity,
-        unit: mat.unit,
-        unitCost: itemUnitCost,
-        subtotal: itemQuantity * itemUnitCost,
-      };
-      setManualItems((prev) => [...prev, newItem]);
-    }
+    const newItem: PurchaseOrderItem = {
+      rawMaterialId: mat.id,
+      rawMaterialSku: mat.sku,
+      rawMaterialName: mat.name,
+      category: mat.category,
+      quantity: itemQuantity,
+      unit: mat.unit,
+      unitCost: itemUnitCost,
+      subtotal: itemQuantity * itemUnitCost,
+    };
+
+    setManualItems((prev) => [...prev, newItem]);
   };
 
   const handleRemoveManualItem = (index: number) => {
-    setManualItems((prev) => prev.filter((_, idx) => idx !== index));
+    setManualItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Save manual order
   const handleSaveManualOrder = () => {
-    const supplier =
-      manualSupplier === '__CUSTOM__' ? manualCustomSupplier.trim() : manualSupplier.trim();
+    if (manualItems.length === 0) return;
 
-    if (!supplier) {
-      alert('Por favor especifique el nombre del proveedor.');
-      return;
-    }
-
-    if (manualItems.length === 0) {
-      alert('Debe agregar al menos una materia prima a la orden de compra.');
-      return;
-    }
+    const finalSupplier =
+      manualSupplier === '__CUSTOM__' ? manualCustomSupplier || 'Proveedor General' : manualSupplier;
 
     const totalAmount = manualItems.reduce((acc, item) => acc + item.subtotal, 0);
-    const newOrderNumber = `OC-MAN-${Date.now().toString().slice(-4)}`;
-
     const newPO: PurchaseOrder = {
-      id: newOrderNumber,
-      supplierName: supplier,
+      id: `OC-MAN-${Date.now().toString().slice(-4)}`,
+      supplierName: finalSupplier,
       orderDate: manualDate,
       expectedDeliveryDate: manualDeliveryDate,
       status: manualStatus,
@@ -228,84 +195,113 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
 
     setSelectedOrderId(newPO.id);
     setIsCreatingManual(false);
+    setMobileView('detail');
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full border border-[#E5E7EB] overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs">
+      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full border border-[#E6E1D8] overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[92vh]">
         {/* Header */}
-        <div className="p-5 border-b border-[#E5E7EB] flex items-center justify-between bg-white">
+        <div className="p-4 sm:p-5 border-b border-[#E6E1D8] flex items-center justify-between bg-[#FCFBF9]">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-indigo-50 text-[#4F46E5] rounded-lg">
+            <div className="p-2 bg-[#EBF2EC] text-[#3A5A40] rounded-lg">
               <ShoppingCart className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[#111827]">
+              <h3 className="text-sm sm:text-base font-bold text-[#1C211D]">
                 Gestión y Emisión de Órdenes de Compra
               </h3>
-              <p className="text-xs text-[#6B7280]">
+              <p className="text-[11px] text-[#5F6B61] hidden sm:block">
                 Genere OCs agrupadas automáticamente por proveedor o ingréselas manualmente para control de abastecimiento.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#9CA3AF] hover:text-[#111827] hover:bg-[#F9FAFB] transition-colors"
+            className="p-1.5 rounded-lg text-[#8F9990] hover:text-[#1C211D] hover:bg-[#FAF8F5] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Mobile View Toggle Buttons on screens < md */}
+        <div className="md:hidden flex border-b border-[#E6E1D8] bg-[#FAF8F5]">
+          <button
+            onClick={() => setMobileView('list')}
+            className={`flex-1 py-2 text-xs font-bold text-center border-b-2 ${
+              mobileView === 'list'
+                ? 'border-[#3A5A40] text-[#3A5A40] bg-white'
+                : 'border-transparent text-[#5F6B61]'
+            }`}
+          >
+            Lista de Órdenes ({purchaseOrders.length})
+          </button>
+          <button
+            onClick={() => setMobileView('detail')}
+            className={`flex-1 py-2 text-xs font-bold text-center border-b-2 ${
+              mobileView === 'detail'
+                ? 'border-[#3A5A40] text-[#3A5A40] bg-white'
+                : 'border-transparent text-[#5F6B61]'
+            }`}
+          >
+            {isCreatingManual ? 'Nueva Orden' : activeOrder ? `Detalle (${activeOrder.id})` : 'Detalle'}
+          </button>
+        </div>
+
         {/* Content Body */}
         <div className="grid grid-cols-1 md:grid-cols-3 flex-1 overflow-hidden">
-          {/* Left Panel: Orders List, Search, and Status Filter */}
-          <div className="p-4 border-r border-[#E5E7EB] bg-[#F9FAFB] flex flex-col justify-between overflow-y-auto space-y-4">
+          {/* Left Panel: Orders List */}
+          <div
+            className={`${
+              mobileView === 'detail' ? 'hidden md:flex' : 'flex'
+            } p-3.5 sm:p-4 border-r border-[#E6E1D8] bg-[#FAF8F5] flex-col justify-between overflow-y-auto space-y-3.5`}
+          >
             <div className="space-y-3">
               {/* Action Buttons: Auto-Generate and Manual Input */}
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-[#111827] uppercase tracking-wider">
+                <span className="text-xs font-bold text-[#1C211D] uppercase tracking-wider">
                   Órdenes ({purchaseOrders.length})
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={handleOpenManualCreate}
-                    className="px-2.5 py-1 bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6] text-[#374151] rounded-lg text-xs font-bold shadow-2xs transition-colors flex items-center gap-1"
+                    className="px-2.5 py-1 bg-white border border-[#D5CEC2] hover:bg-[#FAF8F5] text-[#1C211D] rounded-lg text-xs font-bold shadow-2xs transition-colors flex items-center gap-1 active:scale-95"
                     title="Ingresar una orden de compra manualmente"
                     id="btn-manual-po"
                   >
-                    <Plus className="w-3.5 h-3.5 text-[#4F46E5]" />
+                    <Plus className="w-3.5 h-3.5 text-[#3A5A40]" />
                     Manual
                   </button>
                   <button
                     onClick={handleGenerateAllNeeded}
                     disabled={materialsNeedingPurchase.length === 0}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold shadow-2xs transition-colors flex items-center gap-1 ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold shadow-2xs transition-colors flex items-center gap-1 active:scale-95 ${
                       materialsNeedingPurchase.length > 0
-                        ? 'bg-[#4F46E5] hover:bg-[#4338CA] text-white cursor-pointer'
-                        : 'bg-[#E5E7EB] text-[#9CA3AF] cursor-not-allowed'
+                        ? 'bg-[#3A5A40] hover:bg-[#2D4632] text-white cursor-pointer'
+                        : 'bg-[#E6E1D8] text-[#8F9990] cursor-not-allowed'
                     }`}
                     title="Agrupar automáticamente todo el déficit del MRP por proveedor"
                     id="btn-auto-generate-po"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Auto-Generar ({materialsNeedingPurchase.length})
+                    Auto ({materialsNeedingPurchase.length})
                   </button>
                 </div>
               </div>
 
               {/* Search Bar */}
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-[#9CA3AF] absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-[#8F9990] absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Buscar por OC o proveedor..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-white border border-[#D1D5DB] rounded-lg text-xs text-[#111827] placeholder-[#9CA3AF] focus:ring-1 focus:ring-[#4F46E5] focus:outline-hidden"
+                  className="w-full pl-8 pr-3 py-1.5 bg-white border border-[#D5CEC2] rounded-lg text-xs text-[#1C211D] placeholder-[#8F9990] focus:ring-1 focus:ring-[#3A5A40] focus:outline-hidden"
                 />
               </div>
 
-              {/* Status Filter Chips (ACTIVE & FUNCTIONAL) */}
+              {/* Status Filter Chips */}
               <div className="flex flex-wrap gap-1">
                 {(['ALL', 'Borrador', 'Emitida', 'En Tránsito', 'Recibida'] as const).map((st) => {
                   const count =
@@ -320,8 +316,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
                       onClick={() => setStatusFilter(st)}
                       className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all ${
                         isSelected
-                          ? 'bg-[#4F46E5] text-white border-[#4F46E5] shadow-2xs'
-                          : 'bg-white text-[#6B7280] border-[#E5E7EB] hover:text-[#111827] hover:bg-[#F3F4F6]'
+                          ? 'bg-[#3A5A40] text-white border-[#3A5A40] shadow-2xs'
+                          : 'bg-white text-[#5F6B61] border-[#E6E1D8] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
                       }`}
                     >
                       {st === 'ALL' ? 'Todos' : st} ({count})
@@ -332,19 +328,19 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
 
               {/* Orders List */}
               {filteredOrders.length === 0 ? (
-                <div className="p-6 text-center text-xs text-[#6B7280] bg-white rounded-xl border border-dashed border-[#D1D5DB] space-y-2">
+                <div className="p-6 text-center text-xs text-[#5F6B61] bg-white rounded-xl border border-dashed border-[#D5CEC2] space-y-2">
                   <p>No se encontraron órdenes con el filtro seleccionado.</p>
                   {statusFilter !== 'ALL' && (
                     <button
                       onClick={() => setStatusFilter('ALL')}
-                      className="text-xs font-bold text-[#4F46E5] hover:underline"
+                      className="text-xs font-bold text-[#3A5A40] hover:underline"
                     >
                       Ver todas las órdenes
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[48vh] sm:max-h-[50vh] overflow-y-auto pr-1">
                   {filteredOrders.map((po) => {
                     const isSelected = !isCreatingManual && activeOrder && activeOrder.id === po.id;
 
@@ -354,15 +350,16 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
                         onClick={() => {
                           setIsCreatingManual(false);
                           setSelectedOrderId(po.id);
+                          setMobileView('detail');
                         }}
                         className={`p-3 rounded-xl border cursor-pointer transition-all ${
                           isSelected
-                            ? 'bg-white border-[#4F46E5] shadow-xs ring-1 ring-[#4F46E5]'
-                            : 'bg-white border-[#E5E7EB] hover:border-[#D1D5DB]'
+                            ? 'bg-white border-[#3A5A40] shadow-xs ring-1 ring-[#3A5A40]'
+                            : 'bg-white border-[#E6E1D8] hover:border-[#D5CEC2]'
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-mono text-xs font-bold text-[#111827]">{po.id}</span>
+                          <span className="font-mono text-xs font-bold text-[#1C211D]">{po.id}</span>
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getStatusBadge(
                               po.status
@@ -371,12 +368,12 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
                             {po.status}
                           </span>
                         </div>
-                        <div className="text-xs font-semibold text-[#374151] mt-1 truncate">
+                        <div className="text-xs font-semibold text-[#1C211D] mt-1 truncate">
                           {po.supplierName}
                         </div>
-                        <div className="flex justify-between items-center text-[11px] text-[#6B7280] mt-2 pt-2 border-t border-[#F3F4F6]">
-                          <span>{po.items.length} materias primas</span>
-                          <span className="font-bold text-[#111827]">
+                        <div className="flex justify-between items-center text-[11px] text-[#5F6B61] mt-2 pt-2 border-t border-[#F2EEE6]">
+                          <span>{po.items.length} insumos</span>
+                          <span className="font-bold text-[#1C211D]">
                             {formatCOP(po.totalAmount)}
                           </span>
                         </div>
@@ -387,50 +384,57 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
               )}
             </div>
 
-            {/* Inventory Sync Helper Notice */}
-            <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl text-[11px] text-[#374151] space-y-1">
-              <strong className="block font-bold text-[#4F46E5]">Sincronización Automática:</strong>
-              <p className="text-[10px] text-[#4B5563]">
+            {/* Inventory Sync Notice */}
+            <div className="p-3 bg-[#EBF2EC]/50 border border-[#D4E3D7] rounded-xl text-[11px] text-[#1C211D] space-y-1">
+              <strong className="block font-bold text-[#3A5A40]">Sincronización Automática:</strong>
+              <p className="text-[10px] text-[#5F6B61]">
                 Al marcar una orden como <em>"En Tránsito"</em>, el sistema suma las cantidades al inventario en tránsito para reducir el déficit del MRP.
               </p>
             </div>
           </div>
 
-          {/* Right Panel: Active Order View OR Manual Order Creation Form */}
-          <div className="md:col-span-2 p-6 overflow-y-auto flex flex-col justify-between space-y-6 bg-white">
+          {/* Right Panel: Active Order View OR Manual Creation Form */}
+          <div
+            className={`${
+              mobileView === 'list' ? 'hidden md:flex' : 'flex'
+            } md:col-span-2 p-4 sm:p-6 overflow-y-auto flex-col justify-between space-y-5 bg-white`}
+          >
             {/* VIEW A: MANUAL ORDER CREATION FORM */}
             {isCreatingManual ? (
-              <div className="space-y-5">
-                <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E6E1D8]">
                   <div className="flex items-center gap-2">
-                    <div className="p-2 bg-indigo-50 text-[#4F46E5] rounded-lg">
+                    <div className="p-1.5 bg-[#EBF2EC] text-[#3A5A40] rounded-lg">
                       <Building className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-[#111827]">Nueva Orden de Compra Manual</h4>
-                      <p className="text-xs text-[#6B7280]">
-                        Seleccione el proveedor, configure las fechas y agregue los insumos necesarios.
+                      <h4 className="text-sm font-bold text-[#1C211D]">Nueva Orden de Compra Manual</h4>
+                      <p className="text-[11px] text-[#5F6B61]">
+                        Seleccione el proveedor, configure las fechas y agregue los insumos.
                       </p>
                     </div>
                   </div>
                   <button
-                    onClick={() => setIsCreatingManual(false)}
-                    className="text-xs text-[#6B7280] hover:text-[#111827] font-semibold"
+                    onClick={() => {
+                      setIsCreatingManual(false);
+                      setMobileView('list');
+                    }}
+                    className="text-xs text-[#5F6B61] hover:text-[#1C211D] font-semibold"
                   >
                     Cancelar
                   </button>
                 </div>
 
                 {/* Form Fields Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   {/* Supplier */}
                   <div className="space-y-1 sm:col-span-2">
-                    <label className="font-bold text-[#374151]">Proveedor:</label>
+                    <label className="font-bold text-[#1C211D]">Proveedor:</label>
                     <div className="flex gap-2">
                       <select
                         value={manualSupplier}
                         onChange={(e) => setManualSupplier(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg font-semibold text-[#111827] focus:ring-1 focus:ring-[#4F46E5] focus:outline-hidden"
+                        className="flex-1 px-3 py-2 bg-white border border-[#D5CEC2] rounded-lg font-semibold text-[#1C211D] focus:ring-1 focus:ring-[#3A5A40]"
                       >
                         {existingSuppliers.map((sup) => (
                           <option key={sup} value={sup}>
@@ -446,7 +450,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
                           placeholder="Nombre del nuevo proveedor..."
                           value={manualCustomSupplier}
                           onChange={(e) => setManualCustomSupplier(e.target.value)}
-                          className="flex-1 px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-[#111827] focus:ring-1 focus:ring-[#4F46E5] focus:outline-hidden"
+                          className="flex-1 px-3 py-2 bg-white border border-[#D5CEC2] rounded-lg text-[#1C211D] focus:ring-1 focus:ring-[#3A5A40]"
                         />
                       )}
                     </div>
@@ -454,33 +458,33 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
 
                   {/* Order Date */}
                   <div className="space-y-1">
-                    <label className="font-bold text-[#374151]">Fecha de Emisión:</label>
+                    <label className="font-bold text-[#1C211D]">Fecha de Emisión:</label>
                     <input
                       type="date"
                       value={manualDate}
                       onChange={(e) => setManualDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-[#111827] focus:ring-1 focus:ring-[#4F46E5] focus:outline-hidden"
+                      className="w-full px-3 py-2 bg-white border border-[#D5CEC2] rounded-lg text-[#1C211D]"
                     />
                   </div>
 
                   {/* Expected Delivery Date */}
                   <div className="space-y-1">
-                    <label className="font-bold text-[#374151]">Fecha Estimada de Entrega:</label>
+                    <label className="font-bold text-[#1C211D]">Fecha Estimada de Entrega:</label>
                     <input
                       type="date"
                       value={manualDeliveryDate}
                       onChange={(e) => setManualDeliveryDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-[#111827] focus:ring-1 focus:ring-[#4F46E5] focus:outline-hidden"
+                      className="w-full px-3 py-2 bg-white border border-[#D5CEC2] rounded-lg text-[#1C211D]"
                     />
                   </div>
 
                   {/* Status */}
                   <div className="space-y-1">
-                    <label className="font-bold text-[#374151]">Estado Inicial:</label>
+                    <label className="font-bold text-[#1C211D]">Estado Inicial:</label>
                     <select
                       value={manualStatus}
                       onChange={(e) => setManualStatus(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg font-semibold text-[#111827] focus:ring-1 focus:ring-[#4F46E5] focus:outline-hidden"
+                      className="w-full px-3 py-2 bg-white border border-[#D5CEC2] rounded-lg font-semibold text-[#1C211D]"
                     >
                       <option value="Borrador">Borrador</option>
                       <option value="Emitida">Emitida a Proveedor</option>
@@ -491,60 +495,59 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
 
                   {/* Notes */}
                   <div className="space-y-1">
-                    <label className="font-bold text-[#374151]">Notas / Observaciones:</label>
+                    <label className="font-bold text-[#1C211D]">Notas / Observaciones:</label>
                     <input
                       type="text"
                       placeholder="Ej: Orden urgente para tejeduría local"
                       value={manualNotes}
                       onChange={(e) => setManualNotes(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-[#111827] focus:ring-1 focus:ring-[#4F46E5] focus:outline-hidden"
+                      className="w-full px-3 py-2 bg-white border border-[#D5CEC2] rounded-lg text-[#1C211D]"
                     />
                   </div>
                 </div>
 
                 {/* Add Materials Section */}
-                <div className="p-4 bg-[#F9FAFB] rounded-xl border border-[#E5E7EB] space-y-3">
-                  <span className="font-bold text-xs text-[#111827] block">
+                <div className="p-3.5 bg-[#FAF8F5] rounded-xl border border-[#E6E1D8] space-y-2.5">
+                  <span className="font-bold text-xs text-[#1C211D] block">
                     Agregar Materias Primas a la Orden:
                   </span>
 
                   <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs">
                     <div className="sm:col-span-2">
-                      <label className="text-[11px] text-[#6B7280] block mb-0.5">Materia Prima:</label>
+                      <label className="text-[11px] text-[#5F6B61] block mb-0.5">Materia Prima:</label>
                       <select
                         value={selectedMaterialId}
                         onChange={(e) => handleMaterialChange(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-white border border-[#D1D5DB] rounded-lg font-medium text-[#111827]"
+                        className="w-full px-2.5 py-1.5 bg-white border border-[#D5CEC2] rounded-lg font-medium text-[#1C211D]"
                       >
                         {rawMaterials.map((m) => (
                           <option key={m.id} value={m.id}>
-                            [{m.sku}] {m.name} ({m.category})
+                            [{m.sku}] {m.name}
                           </option>
                         ))}
                       </select>
                     </div>
 
                     <div>
-                      <label className="text-[11px] text-[#6B7280] block mb-0.5">Cantidad:</label>
+                      <label className="text-[11px] text-[#5F6B61] block mb-0.5">Cantidad:</label>
                       <input
                         type="number"
                         min="1"
-                        step="1"
                         value={itemQuantity}
                         onChange={(e) => setItemQuantity(parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-1.5 bg-white border border-[#D1D5DB] rounded-lg font-bold text-[#111827]"
+                        className="w-full px-2.5 py-1.5 bg-white border border-[#D5CEC2] rounded-lg font-bold text-[#1C211D]"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] text-[#6B7280] block mb-0.5">Costo Unit. (COP):</label>
+                      <label className="text-[11px] text-[#5F6B61] block mb-0.5">Costo Unit. (COP):</label>
                       <input
                         type="number"
                         min="0"
                         step="100"
                         value={itemUnitCost}
                         onChange={(e) => setItemUnitCost(parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-1.5 bg-white border border-[#D1D5DB] rounded-lg font-bold text-[#111827]"
+                        className="w-full px-2.5 py-1.5 bg-white border border-[#D5CEC2] rounded-lg font-bold text-[#1C211D]"
                       />
                     </div>
 
@@ -552,53 +555,50 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
                       <button
                         type="button"
                         onClick={handleAddItemToManualOrder}
-                        className="w-full px-3 py-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg font-bold flex items-center justify-center gap-1 transition-colors shadow-2xs"
+                        className="w-full px-3 py-1.5 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg font-bold flex items-center justify-center gap-1 transition-colors shadow-2xs active:scale-95"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        Agregar Ítem
+                        Agregar
                       </button>
                     </div>
                   </div>
                 </div>
 
                 {/* Added Items List */}
-                <div className="border border-[#E5E7EB] rounded-xl overflow-hidden shadow-2xs">
+                <div className="border border-[#E6E1D8] rounded-xl overflow-hidden shadow-2xs">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F9FAFB] text-[#6B7280] font-semibold border-b border-[#E5E7EB] text-[11px] uppercase">
+                    <thead className="bg-[#FAF8F5] text-[#5F6B61] font-semibold border-b border-[#E6E1D8] text-[10px] uppercase">
                       <tr>
-                        <th className="p-3">SKU</th>
-                        <th className="p-3">Materia Prima</th>
-                        <th className="p-3 text-right">Cantidad</th>
-                        <th className="p-3 text-right">P. Unitario</th>
-                        <th className="p-3 text-right">Subtotal COP</th>
-                        <th className="p-3 text-center">Acción</th>
+                        <th className="p-2.5">SKU</th>
+                        <th className="p-2.5">Materia Prima</th>
+                        <th className="p-2.5 text-right">Cantidad</th>
+                        <th className="p-2.5 text-right">Subtotal COP</th>
+                        <th className="p-2.5 text-center">Acción</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E5E7EB]">
+                    <tbody className="divide-y divide-[#F2EEE6]">
                       {manualItems.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-6 text-center text-[#9CA3AF]">
-                            No ha agregado insumos a esta orden aún. Seleccione uno arriba y presione "Agregar Ítem".
+                          <td colSpan={5} className="p-4 text-center text-[#8F9990]">
+                            No ha agregado insumos aún.
                           </td>
                         </tr>
                       ) : (
                         manualItems.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-[#F9FAFB]">
-                            <td className="p-3 font-mono text-[#6B7280]">{item.rawMaterialSku}</td>
-                            <td className="p-3 font-semibold text-[#111827]">{item.rawMaterialName}</td>
-                            <td className="p-3 text-right font-bold text-[#111827]">
+                          <tr key={idx} className="hover:bg-[#FAF8F5]">
+                            <td className="p-2.5 font-mono text-[#5F6B61]">{item.rawMaterialSku}</td>
+                            <td className="p-2.5 font-semibold text-[#1C211D]">{item.rawMaterialName}</td>
+                            <td className="p-2.5 text-right font-bold text-[#1C211D]">
                               {item.quantity.toLocaleString()} {item.unit}
                             </td>
-                            <td className="p-3 text-right text-[#6B7280]">{formatCOP(item.unitCost, false)}</td>
-                            <td className="p-3 text-right font-bold text-[#111827]">
+                            <td className="p-2.5 text-right font-bold text-[#1C211D]">
                               {formatCOP(item.subtotal)}
                             </td>
-                            <td className="p-3 text-center">
+                            <td className="p-2.5 text-center">
                               <button
                                 type="button"
                                 onClick={() => handleRemoveManualItem(idx)}
-                                className="text-red-600 hover:text-red-800 p-1"
-                                title="Quitar ítem"
+                                className="text-[#B33927] p-1"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -611,54 +611,53 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
                 </div>
 
                 {/* Total and Save Actions */}
-                <div className="flex items-center justify-between pt-3 border-t border-[#E5E7EB]">
-                  <div className="text-xs text-[#6B7280]">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-[#E6E1D8]">
+                  <div className="text-xs text-[#5F6B61]">
                     Total ítems: <strong>{manualItems.length}</strong>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
                     <div className="text-right">
-                      <span className="text-[11px] text-[#6B7280] block">TOTAL A EMITIR:</span>
-                      <span className="text-base font-black text-[#4F46E5]">
+                      <span className="text-[10px] text-[#5F6B61] block">TOTAL:</span>
+                      <span className="text-sm sm:text-base font-bold text-[#3A5A40]">
                         {formatCOP(manualItems.reduce((s, i) => s + i.subtotal, 0))}
                       </span>
                     </div>
                     <button
                       onClick={handleSaveManualOrder}
                       disabled={manualItems.length === 0}
-                      className={`px-5 py-2 rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all ${
+                      className={`px-4 py-2 rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all active:scale-95 ${
                         manualItems.length > 0
-                          ? 'bg-[#4F46E5] hover:bg-[#4338CA] text-white cursor-pointer'
-                          : 'bg-[#E5E7EB] text-[#9CA3AF] cursor-not-allowed'
+                          ? 'bg-[#3A5A40] hover:bg-[#2D4632] text-white cursor-pointer'
+                          : 'bg-[#E6E1D8] text-[#8F9990] cursor-not-allowed'
                       }`}
                     >
                       <Save className="w-4 h-4" />
-                      Guardar Orden de Compra
+                      Guardar OC
                     </button>
                   </div>
                 </div>
               </div>
             ) : activeOrder ? (
               /* VIEW B: ACTIVE ORDER DETAILS & EXPORT */
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {/* Top Action Bar */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#F9FAFB] p-4 rounded-xl border border-[#E5E7EB]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FCFBF9] p-3.5 sm:p-4 rounded-xl border border-[#E6E1D8]">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="text-base font-bold text-[#111827]">{activeOrder.id}</h4>
-                      <span className="text-xs text-[#6B7280]">• Emisión: {activeOrder.orderDate}</span>
-                      <span className="text-xs text-[#6B7280]">• Entrega: {activeOrder.expectedDeliveryDate}</span>
+                      <h4 className="text-sm sm:text-base font-bold text-[#1C211D]">{activeOrder.id}</h4>
+                      <span className="text-xs text-[#5F6B61]">• Emisión: {activeOrder.orderDate}</span>
                     </div>
-                    <p className="text-xs text-[#4B5563] font-medium mt-0.5">
-                      Proveedor: <strong className="text-[#111827]">{activeOrder.supplierName}</strong>
+                    <p className="text-xs text-[#1C211D] font-medium mt-0.5">
+                      Proveedor: <strong className="text-[#3A5A40]">{activeOrder.supplierName}</strong>
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {/* Status Dropdown */}
                     <select
                       value={activeOrder.status}
                       onChange={(e) => onUpdateOrderStatus(activeOrder.id, e.target.value as any)}
-                      className="px-3 py-1.5 bg-white border border-[#D1D5DB] rounded-lg text-xs font-bold text-[#111827] focus:ring-1 focus:ring-[#4F46E5]"
+                      className="px-2.5 py-1.5 bg-white border border-[#D5CEC2] rounded-lg text-xs font-bold text-[#1C211D] focus:ring-1 focus:ring-[#3A5A40]"
                     >
                       <option value="Borrador">Borrador</option>
                       <option value="Emitida">Emitida a Proveedor</option>
@@ -669,14 +668,13 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
                     {/* PDF Export Button */}
                     <button
                       onClick={() => exportPurchaseOrderToPDF(activeOrder)}
-                      className="px-3 py-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg text-xs font-bold shadow-2xs flex items-center gap-1.5 transition-colors"
+                      className="px-3 py-1.5 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg text-xs font-bold shadow-2xs flex items-center gap-1.5 transition-colors active:scale-95"
                       id="btn-export-po-pdf"
                     >
                       <FileText className="w-3.5 h-3.5" />
-                      Descargar PDF
+                      PDF
                     </button>
 
-                    {/* Delete button if provided */}
                     {onDeleteOrder && (
                       <button
                         onClick={() => {
@@ -684,7 +682,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
                             onDeleteOrder(activeOrder.id);
                           }
                         }}
-                        className="p-1.5 text-[#9CA3AF] hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                        className="p-1.5 text-[#8F9990] hover:text-[#B33927] rounded-lg transition-colors"
                         title="Eliminar esta orden"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -694,29 +692,27 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
                 </div>
 
                 {/* Items Table */}
-                <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden shadow-2xs">
+                <div className="bg-white border border-[#E6E1D8] rounded-xl overflow-hidden shadow-2xs">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F9FAFB] text-[#6B7280] font-semibold border-b border-[#E5E7EB] text-[11px] uppercase">
+                    <thead className="bg-[#FAF8F5] text-[#5F6B61] font-semibold border-b border-[#E6E1D8] text-[10px] uppercase">
                       <tr>
                         <th className="p-3">SKU</th>
                         <th className="p-3">Materia Prima</th>
-                        <th className="p-3">Categoría</th>
                         <th className="p-3 text-right">Cantidad</th>
                         <th className="p-3 text-right">P. Unitario</th>
                         <th className="p-3 text-right">Subtotal COP</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E5E7EB]">
+                    <tbody className="divide-y divide-[#F2EEE6]">
                       {activeOrder.items.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-[#F9FAFB]">
-                          <td className="p-3 font-mono text-[#6B7280]">{item.rawMaterialSku}</td>
-                          <td className="p-3 font-semibold text-[#111827]">{item.rawMaterialName}</td>
-                          <td className="p-3 text-[#6B7280]">{item.category}</td>
-                          <td className="p-3 text-right font-bold text-[#111827]">
+                        <tr key={idx} className="hover:bg-[#FAF8F5]">
+                          <td className="p-3 font-mono text-[#5F6B61]">{item.rawMaterialSku}</td>
+                          <td className="p-3 font-semibold text-[#1C211D]">{item.rawMaterialName}</td>
+                          <td className="p-3 text-right font-bold text-[#1C211D]">
                             {item.quantity.toLocaleString()} {item.unit}
                           </td>
-                          <td className="p-3 text-right text-[#6B7280]">{formatCOP(item.unitCost, false)}</td>
-                          <td className="p-3 text-right font-bold text-[#111827]">
+                          <td className="p-3 text-right text-[#5F6B61]">{formatCOP(item.unitCost, false)}</td>
+                          <td className="p-3 text-right font-bold text-[#1C211D]">
                             {formatCOP(item.subtotal)}
                           </td>
                         </tr>
@@ -727,16 +723,16 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
 
                 {/* Totals Summary Card */}
                 <div className="flex justify-end">
-                  <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl p-4 w-72 space-y-2 text-xs">
-                    <div className="flex justify-between text-[#6B7280]">
-                      <span>Total Unidades / Metros:</span>
-                      <span className="font-bold text-[#111827]">
-                        {activeOrder.items.reduce((s, i) => s + i.quantity, 0).toLocaleString()}
+                  <div className="bg-[#FAF8F5] border border-[#E6E1D8] rounded-xl p-3.5 w-72 space-y-2 text-xs">
+                    <div className="flex justify-between text-[#5F6B61]">
+                      <span>Total Cantidad:</span>
+                      <span className="font-bold text-[#1C211D]">
+                        {activeOrder.items.reduce((s, i) => s + i.quantity, 0).toLocaleString()} u
                       </span>
                     </div>
-                    <div className="flex justify-between text-sm font-black text-[#111827] pt-2 border-t border-[#E5E7EB]">
+                    <div className="flex justify-between text-sm font-bold text-[#1C211D] pt-2 border-t border-[#E6E1D8]">
                       <span>TOTAL ORDEN:</span>
-                      <span className="text-[#4F46E5]">
+                      <span className="text-[#3A5A40]">
                         {formatCOP(activeOrder.totalAmount)}
                       </span>
                     </div>
@@ -744,12 +740,12 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="p-12 text-center text-[#9CA3AF] space-y-3">
-                <Package className="w-12 h-12 text-[#D1D5DB] mx-auto" />
-                <p className="text-sm">Seleccione o genere una orden de compra para visualizarla.</p>
+              <div className="p-8 sm:p-12 text-center text-[#8F9990] space-y-3">
+                <Package className="w-10 h-10 text-[#D5CEC2] mx-auto" />
+                <p className="text-xs">Seleccione o genere una orden de compra para visualizarla.</p>
                 <button
                   onClick={handleOpenManualCreate}
-                  className="px-4 py-2 bg-[#4F46E5] text-white rounded-lg text-xs font-bold shadow-2xs"
+                  className="px-4 py-2 bg-[#3A5A40] text-white rounded-lg text-xs font-bold shadow-2xs"
                 >
                   + Ingresar Nueva Orden Manual
                 </button>
@@ -759,15 +755,15 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-[#E5E7EB] bg-[#F9FAFB] flex items-center justify-between">
-          <span className="text-xs text-[#6B7280]">
-            {purchaseOrders.length} órdenes registradas en el sistema
+        <div className="p-3.5 sm:p-4 border-t border-[#E6E1D8] bg-[#FCFBF9] flex items-center justify-between">
+          <span className="text-xs text-[#5F6B61]">
+            {purchaseOrders.length} órdenes registradas
           </span>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-[#111827] hover:bg-black text-white rounded-lg text-xs font-bold transition-colors"
+            className="px-4 py-2 bg-[#1C211D] hover:bg-[#2D4632] text-white rounded-lg text-xs font-bold transition-colors active:scale-95"
           >
-            Aceptar y Cerrar
+            Cerrar
           </button>
         </div>
       </div>

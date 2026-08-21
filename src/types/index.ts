@@ -51,30 +51,49 @@ export interface ProductionOperation {
 
 export interface QualityCheckpoint {
   id: string;
-  operationName: string;
+  operationName?: string;
+  stage?: 'Corte' | 'Costura' | 'Plancha' | 'Empaque Final' | string;
+  parameter?: string;
+  tolerance?: string;
   potentialDefect: string; // ej: "Descarrilamiento de pespunte", "Descalce de líneas", "Revirado de tela"
-  preventionInstruction: string; // ej: "Utilizar guía 1/16, revisar tensión de hilo inferior"
-  toleranceMetric: string; // ej: "+/- 1.5mm de margen", "10-12 puntadas por pulgada (SPI)"
-  severity: 'Alta' | 'Media' | 'Baja';
+  preventionInstruction?: string; // ej: "Utilizar guía 1/16, revisar tensión de hilo inferior"
+  toleranceMetric?: string; // ej: "+/- 1.5mm de margen", "10-12 puntadas por pulgada (SPI)"
+  severity: 'Alta' | 'Media' | 'Baja' | 'Menor' | 'Mayor' | 'Crítico';
 }
 
+export type OperationRouting = ProductionOperation;
+export type GarmentCosting = ProductionCosting;
+
 export interface ProductionCosting {
-  rawMaterialsCost: number; // Costo total telas + avíos (COP)
-  internalLaborRatePerMinute: number; // Tarifa minuto planta interna (COP/min, ej: 280 COP/min)
-  internalOverheadRatePerMinute: number; // Costos indirectos CIF (COP/min, ej: 95 COP/min)
-  internalLaborCost: number; // Total MOD interno (SAM total * tarifa)
-  internalOverheadCost: number; // Total CIF interno
+  rawMaterialsCost?: number; // Costo total telas + avíos (COP)
+  rawMaterialCost?: number;
+  internalLaborRatePerMinute?: number; // Tarifa minuto planta interna (COP/min)
+  laborCostPerMinute?: number;
+  internalOverheadRatePerMinute?: number; // Costos indirectos CIF (COP/min)
+  overheadCostPerMinute?: number;
+  internalLaborCost?: number; // Total MOD interno
+  directLaborCost?: number;
+  internalOverheadCost?: number; // Total CIF interno
+  overheadCost?: number;
   totalInternalCost: number; // Costo unitario total taller propio (Telas + MOD + CIF)
 
-  maquilaCuttingRate: number; // Tarifa de corte satélite (COP/u)
-  maquilaSewingRate: number; // Tarifa de confección satélite (COP/u)
-  maquilaFinishingRate: number; // Tarifa de plancha/acabados satélite (COP/u)
-  maquilaLogisticsCost: number; // Fletes y empaque satélite (COP/u)
-  totalMaquilaCost: number; // Costo unitario total maquila externa
+  maquilaCuttingRate?: number; // Tarifa de corte satélite (COP/u)
+  maquilaSewingRate?: number; // Tarifa de confección satélite (COP/u)
+  maquilaFinishingRate?: number; // Tarifa de plancha/acabados satélite (COP/u)
+  maquilaLogisticsCost?: number; // Fletes y empaque satélite (COP/u)
+  totalMaquilaCost?: number; // Costo unitario total maquila externa
+  maquilaRates?: {
+    cuttingCostPerUnit?: number;
+    sewingCostPerUnit?: number;
+    finishingCostPerUnit?: number;
+    transportPerUnit?: number;
+    totalMaquilaUnitCost?: number;
+  };
 
-  recommendedSellingPrice: number; // Precio de venta recomendado (COP)
-  internalProfitMarginPercent: number; // Margen de ganancia en producción interna (%)
-  maquilaProfitMarginPercent: number; // Margen de ganancia en producción maquila (%)
+  recommendedSellingPrice?: number; // Precio de venta recomendado (COP)
+  internalProfitMarginPercent?: number; // Margen de ganancia en producción interna (%)
+  maquilaProfitMarginPercent?: number; // Margen de ganancia en producción maquila (%)
+  targetMarginPercent?: number;
 }
 
 export interface Garment {
@@ -105,6 +124,7 @@ export interface ProductionCycleConfig {
   durationMonths: number;
   customDays?: number;
   startDate: string;
+  endDate?: string;
   season?: 'general' | 'inicio_ano_escolar' | 'dia_mujer' | 'dia_madre' | 'dia_padre' | 'amor_amistad' | 'fin_de_ano'; // Temporada comercial colombiana activa
   defaultScrapRatePercent: number; // Merma global de corte y confección (ej: 5%)
   safetyStockDaysDefault: number; // Días de stock de seguridad (ej: 15 días)
@@ -145,6 +165,135 @@ export interface SalesRecord {
   unitsSold: number;
   channel: string;
   revenue: number;
+}
+
+export type ProductionOrderStatus =
+  | 'Programada'
+  | 'En Corte'
+  | 'En Confección'
+  | 'En Terminación'
+  | 'Control Calidad'
+  | 'Completada'
+  | 'Detenida';
+
+export type ProductionStage =
+  | 'Programación'
+  | 'Corte'
+  | 'Confección'
+  | 'Lavandería / Acabados'
+  | 'Calidad'
+  | 'Empaque';
+
+export interface ProductionStageLog {
+  id: string;
+  timestamp: string;
+  stage: ProductionStage;
+  unitsProcessed: number;
+  unitsDefective?: number;
+  operatorOrWorkshop: string;
+  notes?: string;
+  recordedBy: string;
+}
+
+export type ScrapVarianceReason =
+  | 'Fallas en rollo / orillos'
+  | 'Merma de trazo / tendido'
+  | 'Reprocesos costura'
+  | 'Descalce de patrones'
+  | 'Consumo estándar exacto'
+  | 'Ahorro optimizado en tizada'
+  | 'Otro';
+
+export interface MaterialScrapLog {
+  id: string;
+  rawMaterialId: string;
+  rawMaterialSku: string;
+  rawMaterialName: string;
+  category: MaterialCategory;
+  unit: MaterialUnit;
+  unitsProduced: number;
+  theoreticalConsumption: number; // Consumo teórico según BOM
+  actualConsumption: number; // Consumo real medido en mesa/planta
+  standardScrapPercent: number; // % merma teórica
+  actualScrapPercent: number; // % merma real obtenida
+  varianceQty: number; // actual - theoretical
+  unitCostCOP: number;
+  varianceCostCOP: number; // Desviación económica (+ sobrecosto / - ahorro)
+  reason: ScrapVarianceReason;
+  recordedAt: string;
+  lotNumber?: string;
+}
+
+export interface ProductionOrder {
+  id: string;
+  orderNumber: string; // ej: OP-2026-001
+  garmentId: string;
+  garmentSku: string;
+  garmentName: string;
+  batchLotNumber: string; // ej: LOTE-CAM-001
+  unitsTarget: number;
+  unitsCut: number;
+  unitsSewn: number;
+  unitsFinished: number;
+  unitsDefective: number; // Unidades defectuosas / segundas
+  status: ProductionOrderStatus;
+  assignedPlant: string; // ej: Taller Central, Satélite Bello, etc.
+  startDate: string;
+  targetCompletionDate: string;
+  actualCompletionDate?: string;
+  priority: 'Alta' | 'Normal' | 'Urgente';
+  notes?: string;
+  stageLogs: ProductionStageLog[];
+  scrapLogs: MaterialScrapLog[];
+}
+
+export interface LiveBottleneckAlert {
+  id: string;
+  severity: 'Crítico' | 'Alerta' | 'Informativo';
+  title: string;
+  description: string;
+  impactArea: 'Abastecimiento' | 'Corte' | 'Confección' | 'Calidad' | 'Financiero';
+  relatedId?: string;
+  recommendedAction: string;
+  detectedAt: string;
+}
+
+export interface TimeSeriesDataPoint {
+  dayIndex: number;
+  date: string;
+  dayLabel: string;
+  projectedDemandCum: number;
+  projectedProductionCum: number;
+  actualProductionCum: number;
+  fabricStockProjected: number;
+  dailyBurnRate: number;
+  activeBottlenecks: number;
+}
+
+export interface SupplierPerformanceMetric {
+  supplierName: string;
+  category: MaterialCategory;
+  totalOrders: number;
+  completedOrders: number;
+  onTimeDeliveries: number;
+  averageLeadTimeDays: number;
+  promisedLeadTimeDays: number;
+  leadTimeVarianceDays: number; // Prometido vs real
+  otifScorePercent: number; // On-Time In-Full score %
+  qualityCompliancePercent: number;
+  status: 'Excelente' | 'Aceptable' | 'Riesgoso';
+}
+
+export interface ExecutionDashboardMetrics {
+  totalActiveOPs: number;
+  totalUnitsInPipeline: number;
+  totalUnitsCompleted: number;
+  overallYieldPercent: number; // Eficiencia de prendas de 1ra calidad
+  averageActualScrapPercent: number;
+  theoreticalScrapPercent: number;
+  scrapCostVarianceCOP: number; // Sobrecosto neto de merma
+  overallOTIFPercent: number;
+  criticalBottlenecksCount: number;
 }
 
 export interface ProductionRecord {
@@ -209,6 +358,8 @@ export type PermissionKey =
   | 'view_demand_forecast' // Ver metas de ventas e histórico
   | 'edit_sales_targets' // Modificar unidades meta y proyecciones
   | 'manage_production_cycles' // Modificar horizonte, temporadas, factores de crecimiento
+  | 'view_production_execution' // Ver Ejecución en Planta, OPs y Analítica Temporal
+  | 'manage_production_orders' // Crear OPs, registrar avances de corte/costura y mermas
   | 'view_costing' // Ver comparador Taller vs Maquila
   | 'edit_costing_rates' // Modificar tarifas MOD, CIF y satélites
   | 'manage_users' // Crear usuarios, cambiar claves y asignar permisos

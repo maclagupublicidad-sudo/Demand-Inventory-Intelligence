@@ -1,10 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   initialRawMaterials,
   initialGarments,
   sampleSalesRecords,
   initialCycleConfig,
   initialPurchaseOrders,
+  initialProductionOrders,
+  DEMO_RAW_MATERIALS,
+  DEMO_GARMENTS,
+  DEMO_SALES_RECORDS,
+  DEMO_PURCHASE_ORDERS,
+  DEMO_PRODUCTION_ORDERS,
 } from './data/mockData';
 import { INITIAL_USERS } from './data/mockUsers';
 import {
@@ -13,6 +19,9 @@ import {
   SalesRecord,
   ProductionCycleConfig,
   PurchaseOrder,
+  ProductionOrder,
+  ProductionStageLog,
+  MaterialScrapLog,
   BOMItem,
   MRPResultItem,
   AppUser,
@@ -27,6 +36,7 @@ import { DashboardOverview } from './components/DashboardOverview';
 import { MRPCalculatorTable } from './components/MRPCalculatorTable';
 import { BOMExplosionView } from './components/BOMExplosionView';
 import { DemandForecastingView } from './components/DemandForecastingView';
+import { ProductionExecutionView } from './components/ProductionExecutionView';
 import { CSVManagerModal } from './components/CSVManagerModal';
 import { PurchaseOrderModal } from './components/PurchaseOrderModal';
 import { AIIntelligencePanel } from './components/AIIntelligencePanel';
@@ -76,12 +86,103 @@ export default function App() {
     return INITIAL_USERS[0];
   });
 
-  // Main Domain State
-  const [garments, setGarments] = useState<Garment[]>(initialGarments);
-  const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>(initialRawMaterials);
-  const [salesRecords, setSalesRecords] = useState<SalesRecord[]>(sampleSalesRecords);
-  const [cycleConfig, setCycleConfig] = useState<ProductionCycleConfig>(initialCycleConfig);
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(initialPurchaseOrders);
+  // Main Domain State with LocalStorage Persistence
+  const [garments, setGarments] = useState<Garment[]>(() => {
+    const saved = localStorage.getItem('textiliq_garments');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return initialGarments;
+  });
+
+  const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>(() => {
+    const saved = localStorage.getItem('textiliq_materials');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return initialRawMaterials;
+  });
+
+  const [salesRecords, setSalesRecords] = useState<SalesRecord[]>(() => {
+    const saved = localStorage.getItem('textiliq_sales');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return sampleSalesRecords;
+  });
+
+  const [cycleConfig, setCycleConfig] = useState<ProductionCycleConfig>(() => {
+    const saved = localStorage.getItem('textiliq_cycle');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return initialCycleConfig;
+  });
+
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(() => {
+    const saved = localStorage.getItem('textiliq_orders');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return initialPurchaseOrders;
+  });
+
+  const [productionOrders, setProductionOrders] = useState<ProductionOrder[]>(() => {
+    const saved = localStorage.getItem('textiliq_production_orders');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return initialProductionOrders;
+  });
+
+  // Automatically save domain state changes
+  useEffect(() => {
+    localStorage.setItem('textiliq_garments', JSON.stringify(garments));
+  }, [garments]);
+
+  useEffect(() => {
+    localStorage.setItem('textiliq_materials', JSON.stringify(rawMaterials));
+  }, [rawMaterials]);
+
+  useEffect(() => {
+    localStorage.setItem('textiliq_sales', JSON.stringify(salesRecords));
+  }, [salesRecords]);
+
+  useEffect(() => {
+    localStorage.setItem('textiliq_cycle', JSON.stringify(cycleConfig));
+  }, [cycleConfig]);
+
+  useEffect(() => {
+    localStorage.setItem('textiliq_orders', JSON.stringify(purchaseOrders));
+  }, [purchaseOrders]);
+
+  useEffect(() => {
+    localStorage.setItem('textiliq_production_orders', JSON.stringify(productionOrders));
+  }, [productionOrders]);
 
   // Navigation & Filtering
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -343,16 +444,128 @@ export default function App() {
   };
 
   const handleResetDemoData = () => {
-    if (confirm('¿Desea restaurar todos los datos demo de confección y fichas técnicas?')) {
-      setGarments(initialGarments);
-      setRawMaterials(initialRawMaterials);
-      setSalesRecords(sampleSalesRecords);
+    const choice = confirm(
+      '¿Desea restaurar los datos de ejemplo (DEMO)?\n\nPresione ACEPTAR para cargar datos de prueba, o CANCELAR para mantener el sistema limpio.'
+    );
+    if (choice) {
+      setGarments(DEMO_GARMENTS);
+      setRawMaterials(DEMO_RAW_MATERIALS);
+      setSalesRecords(DEMO_SALES_RECORDS);
+      setPurchaseOrders(DEMO_PURCHASE_ORDERS);
+      setProductionOrders(DEMO_PRODUCTION_ORDERS);
       setCycleConfig(initialCycleConfig);
-      setPurchaseOrders(initialPurchaseOrders);
       setUsers(INITIAL_USERS);
       setCurrentUser(INITIAL_USERS[0]);
-      localStorage.removeItem('textiliq_users');
-      localStorage.removeItem('textiliq_current_user');
+    }
+  };
+
+  const handleClearAllData = () => {
+    if (confirm('¿Está seguro de que desea vaciar todos los datos y dejar el sistema completamente en blanco para producción?')) {
+      setGarments([]);
+      setRawMaterials([]);
+      setSalesRecords([]);
+      setPurchaseOrders([]);
+      setProductionOrders([]);
+      localStorage.removeItem('textiliq_garments');
+      localStorage.removeItem('textiliq_materials');
+      localStorage.removeItem('textiliq_sales');
+      localStorage.removeItem('textiliq_orders');
+      localStorage.removeItem('textiliq_production_orders');
+    }
+  };
+
+  // Production Orders & Shopfloor MES Handlers
+  const handleAddProductionOrder = (newOrder: ProductionOrder) => {
+    setProductionOrders((prev) => [newOrder, ...prev]);
+
+    // Update garment WIP stock
+    setGarments((prev) =>
+      prev.map((g) =>
+        g.id === newOrder.garmentId
+          ? { ...g, productionWIP: (g.productionWIP || 0) + newOrder.unitsTarget }
+          : g
+      )
+    );
+  };
+
+  const handleUpdateProductionOrder = (updatedOrder: ProductionOrder) => {
+    setProductionOrders((prev) =>
+      prev.map((op) => (op.id === updatedOrder.id ? updatedOrder : op))
+    );
+  };
+
+  const handleDeleteProductionOrder = (orderId: string) => {
+    setProductionOrders((prev) => prev.filter((op) => op.id !== orderId));
+  };
+
+  const handleRecordStageLog = (
+    orderId: string,
+    stageLog: ProductionStageLog,
+    updatedOPCounts: {
+      unitsCut?: number;
+      unitsSewn?: number;
+      unitsFinished?: number;
+      unitsDefective?: number;
+      status?: ProductionOrder['status'];
+    }
+  ) => {
+    setProductionOrders((prev) =>
+      prev.map((op) => {
+        if (op.id !== orderId) return op;
+        return {
+          ...op,
+          ...updatedOPCounts,
+          stageLogs: [stageLog, ...(op.stageLogs || [])],
+        };
+      })
+    );
+
+    // If finished goods were recorded, update garment finished goods inventory
+    if (updatedOPCounts.unitsFinished && updatedOPCounts.unitsFinished > 0) {
+      const targetOp = productionOrders.find((o) => o.id === orderId);
+      if (targetOp) {
+        setGarments((prev) =>
+          prev.map((g) =>
+            g.id === targetOp.garmentId
+              ? {
+                  ...g,
+                  finishedGoodsStock: (g.finishedGoodsStock || 0) + stageLog.unitsProcessed,
+                  productionWIP: Math.max(0, (g.productionWIP || 0) - stageLog.unitsProcessed),
+                }
+              : g
+          )
+        );
+      }
+    }
+  };
+
+  const handleRecordScrapLog = (
+    orderId: string,
+    scrapLog: MaterialScrapLog,
+    deductRawMaterialStock = true
+  ) => {
+    setProductionOrders((prev) =>
+      prev.map((op) => {
+        if (op.id !== orderId) return op;
+        return {
+          ...op,
+          scrapLogs: [scrapLog, ...(op.scrapLogs || [])],
+        };
+      })
+    );
+
+    // If deductRawMaterialStock is true, adjust the current physical inventory of the raw material
+    if (deductRawMaterialStock && scrapLog.actualConsumption > 0) {
+      setRawMaterials((prev) =>
+        prev.map((m) =>
+          m.id === scrapLog.rawMaterialId
+            ? {
+                ...m,
+                currentStock: Math.max(0, m.currentStock - scrapLog.actualConsumption),
+              }
+            : m
+        )
+      );
     }
   };
 
@@ -560,12 +773,17 @@ export default function App() {
               <DashboardOverview
                 mrpSummary={mrpSummary}
                 cycleConfig={cycleConfig}
+                productionOrders={productionOrders}
                 onFilterStatus={(status) => {
                   setStatusFilter(status);
                   setActiveTab('mrp_calculator');
                 }}
                 onOpenAIAdvisor={() => setIsAIAdvisorOpen(true)}
                 onOpenPOModal={() => setIsPOModalOpen(true)}
+                onOpenNewGarment={() => setIsNewGarmentOpen(true)}
+                onOpenNewMaterial={() => setIsNewMaterialOpen(true)}
+                onOpenCSVModal={() => setIsCSVModalOpen(true)}
+                onNavigateToExecution={() => setActiveTab('execution')}
               />
 
               {/* Quick Preview of the MRP Table */}
@@ -733,7 +951,20 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F2EEE6]">
-                    {filteredCatalogMaterials.map((mat) => (
+                    {filteredCatalogMaterials.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="p-8 text-center">
+                          <div className="space-y-2">
+                            <Package className="w-8 h-8 text-[#D5CEC2] mx-auto" />
+                            <div className="text-xs font-bold text-[#1C211D]">No hay materias primas registradas</div>
+                            <p className="text-[11px] text-[#5F6B61] max-w-sm mx-auto">
+                              Registre telas, avíos, botones o hilos en su inventario, o use la importación masiva mediante CSV.
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredCatalogMaterials.map((mat) => (
                       <tr key={mat.id} className="hover:bg-[#FAF8F5]">
                         <td className="p-3 font-mono text-[11px] font-semibold text-[#5F6B61]">
                           {mat.sku}
@@ -778,11 +1009,38 @@ export default function App() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                    )))}
                   </tbody>
                 </table>
               </div>
             </div>
+          )
+        )}
+
+        {/* Tab 6: Ejecución en Planta & Analítica Temporal (MES & Trazabilidad) */}
+        {activeTab === 'execution' && (
+          !hasPermission(currentUser, 'view_production_execution') ? (
+            <AccessRestricted
+              moduleName="Ejecución en Planta & Analítica Temporal (MES)"
+              requiredPermission="view_production_execution"
+              currentUser={currentUser}
+              onOpenLoginModal={() => setIsLoginModalOpen(true)}
+              onOpenUserManagementModal={() => setIsUserManagementModalOpen(true)}
+            />
+          ) : (
+            <ProductionExecutionView
+              productionOrders={productionOrders}
+              garments={garments}
+              rawMaterials={rawMaterials}
+              purchaseOrders={purchaseOrders}
+              cycleConfig={cycleConfig}
+              currentUser={currentUser}
+              onAddProductionOrder={handleAddProductionOrder}
+              onUpdateProductionOrder={handleUpdateProductionOrder}
+              onDeleteProductionOrder={handleDeleteProductionOrder}
+              onRecordStageLog={handleRecordStageLog}
+              onRecordScrapLog={handleRecordScrapLog}
+            />
           )
         )}
       </main>

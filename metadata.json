@@ -1,6 +1,6 @@
 {
   "name": "TextilIQ Demand & Inventory",
-  "description": "Plataforma de inteligencia de demanda, cálculo de requerimientos de materias primas (MRP), fichas técnicas (BOM), costeo y control de accesos con usuarios únicos y permisos por área para la industria de confección textil.",
+  "description": "Plataforma de inteligencia de demanda, cálculo de requerimientos MRP, fichas técnicas (BOM), costeo, ejecución en planta en tiempo real (MES), auditoría de merma real vs teórica y analítica predictiva en series de tiempo para la industria textil de confección.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
