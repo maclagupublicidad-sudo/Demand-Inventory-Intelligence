@@ -42,8 +42,8 @@ import { PurchaseOrderModal } from './components/PurchaseOrderModal';
 import { AIIntelligencePanel } from './components/AIIntelligencePanel';
 import { CycleManagementModal } from './components/CycleManagementModal';
 import { WhatIfSimulator } from './components/WhatIfSimulator';
-import { NewGarmentModal } from './components/NewGarmentModal';
-import { NewMaterialModal } from './components/NewMaterialModal';
+import { GarmentModal } from './components/GarmentModal';
+import { RawMaterialsManager } from './components/RawMaterialsManager';
 import { LoginModal } from './components/LoginModal';
 import { UserManagementModal } from './components/UserManagementModal';
 import { AccessRestricted } from './components/AccessRestricted';
@@ -194,14 +194,10 @@ export default function App() {
   const [isPOModalOpen, setIsPOModalOpen] = useState<boolean>(false);
   const [isAIAdvisorOpen, setIsAIAdvisorOpen] = useState<boolean>(false);
   const [isSimulatorOpen, setIsSimulatorOpen] = useState<boolean>(false);
-  const [isNewGarmentOpen, setIsNewGarmentOpen] = useState<boolean>(false);
-  const [isNewMaterialOpen, setIsNewMaterialOpen] = useState<boolean>(false);
+  const [isGarmentModalOpen, setIsGarmentModalOpen] = useState<boolean>(false);
+  const [editingGarment, setEditingGarment] = useState<Garment | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState<boolean>(false);
-
-  // Raw Materials Catalog Filter State
-  const [materialSearch, setMaterialSearch] = useState('');
-  const [materialCatFilter, setMaterialCatFilter] = useState('ALL');
 
   // Core MRP calculation memoized
   const mrpSummary = useMemo(() => {
@@ -422,12 +418,54 @@ export default function App() {
     }
   };
 
-  const handleAddGarment = (newGarment: Garment) => {
-    setGarments((prev) => [newGarment, ...prev]);
+  const handleSaveGarment = (garment: Garment) => {
+    setGarments((prev) => {
+      const exists = prev.some((g) => g.id === garment.id);
+      if (exists) {
+        return prev.map((g) => (g.id === garment.id ? garment : g));
+      }
+      return [garment, ...prev];
+    });
+  };
+
+  const handleToggleGarmentActive = (garmentId: string) => {
+    setGarments((prev) =>
+      prev.map((g) => (g.id === garmentId ? { ...g, isActive: g.isActive === false ? true : false } : g))
+    );
+  };
+
+  const handleDeleteGarment = (garmentId: string) => {
+    setGarments((prev) => prev.filter((g) => g.id !== garmentId));
+  };
+
+  const handleOpenNewGarmentModal = () => {
+    setEditingGarment(null);
+    setIsGarmentModalOpen(true);
+  };
+
+  const handleOpenEditGarmentModal = (garment: Garment) => {
+    setEditingGarment(garment);
+    setIsGarmentModalOpen(true);
   };
 
   const handleAddMaterial = (newMaterial: RawMaterial) => {
     setRawMaterials((prev) => [newMaterial, ...prev]);
+  };
+
+  const handleUpdateMaterial = (updatedMaterial: RawMaterial) => {
+    setRawMaterials((prev) =>
+      prev.map((m) => (m.id === updatedMaterial.id ? updatedMaterial : m))
+    );
+  };
+
+  const handleToggleMaterialActive = (materialId: string) => {
+    setRawMaterials((prev) =>
+      prev.map((m) =>
+        m.id === materialId
+          ? { ...m, isActive: m.isActive === false ? true : false }
+          : m
+      )
+    );
   };
 
   const handleDeleteMaterial = (materialId: string) => {
@@ -716,19 +754,6 @@ export default function App() {
     setPurchaseOrders((prev) => prev.filter((po) => po.id !== orderId));
   };
 
-  // Filtered raw materials catalog
-  const filteredCatalogMaterials = useMemo(() => {
-    return rawMaterials.filter((m) => {
-      const matchSearch =
-        materialSearch === '' ||
-        m.name.toLowerCase().includes(materialSearch.toLowerCase()) ||
-        m.sku.toLowerCase().includes(materialSearch.toLowerCase()) ||
-        m.supplierName.toLowerCase().includes(materialSearch.toLowerCase());
-      const matchCat = materialCatFilter === 'ALL' || m.category === materialCatFilter;
-      return matchSearch && matchCat;
-    });
-  }, [rawMaterials, materialSearch, materialCatFilter]);
-
   return (
     <div className="min-h-screen bg-[#FAF8F5] flex flex-col font-sans text-[#1C211D] selection:bg-[#3A5A40] selection:text-white">
       {/* Top Main Navigation Header */}
@@ -780,8 +805,8 @@ export default function App() {
                 }}
                 onOpenAIAdvisor={() => setIsAIAdvisorOpen(true)}
                 onOpenPOModal={() => setIsPOModalOpen(true)}
-                onOpenNewGarment={() => setIsNewGarmentOpen(true)}
-                onOpenNewMaterial={() => setIsNewMaterialOpen(true)}
+                onOpenNewGarment={handleOpenNewGarmentModal}
+                onOpenNewMaterial={() => setActiveTab('inventario_materiales')}
                 onOpenCSVModal={() => setIsCSVModalOpen(true)}
                 onNavigateToExecution={() => setActiveTab('execution')}
               />
@@ -844,8 +869,11 @@ export default function App() {
               garments={garments}
               rawMaterials={rawMaterials}
               onUpdateGarmentBOM={handleUpdateGarmentBOM}
-              onUpdateGarment={handleUpdateGarmentFull}
-              onOpenNewGarmentModal={() => setIsNewGarmentOpen(true)}
+              onUpdateGarment={handleSaveGarment}
+              onToggleGarmentActive={handleToggleGarmentActive}
+              onDeleteGarment={handleDeleteGarment}
+              onOpenNewGarmentModal={handleOpenNewGarmentModal}
+              onOpenEditGarmentModal={handleOpenEditGarmentModal}
             />
           )
         )}
@@ -885,135 +913,15 @@ export default function App() {
               onOpenUserManagementModal={() => setIsUserManagementModalOpen(true)}
             />
           ) : (
-            <div className="bg-white rounded-xl border border-[#E6E1D8] shadow-xs overflow-hidden">
-              <div className="p-5 border-b border-[#E6E1D8] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FCFBF9]">
-                <div>
-                  <h3 className="text-base font-bold text-[#1C211D] flex items-center gap-2">
-                    <Package className="w-5 h-5 text-[#3A5A40]" />
-                    Maestro de Inventario de Materias Primas & Telas
-                  </h3>
-                  <p className="text-xs text-[#5F6B61] mt-0.5">
-                    Control central de telas, avíos, botones, cremalleras, hilos y costos unitarios.
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setIsNewMaterialOpen(true)}
-                  className="px-3.5 py-2 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors self-start sm:self-auto"
-                  id="btn-add-raw-material-modal"
-                >
-                  <Plus className="w-4 h-4" />
-                  Nueva Materia Prima
-                </button>
-              </div>
-
-              {/* Catalog Filters */}
-              <div className="p-4 bg-[#FAF8F5] border-b border-[#E6E1D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="w-4 h-4 text-[#8F9990] absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    placeholder="Buscar insumo por SKU, nombre o proveedor..."
-                    value={materialSearch}
-                    onChange={(e) => setMaterialSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-1.5 bg-white border border-[#D5CEC2] rounded-lg text-xs text-[#1C211D] placeholder-[#8F9990] focus:ring-1 focus:ring-[#3A5A40]"
-                  />
-                </div>
-
-                <select
-                  value={materialCatFilter}
-                  onChange={(e) => setMaterialCatFilter(e.target.value)}
-                  className="px-3 py-1.5 bg-white border border-[#D5CEC2] rounded-lg text-xs font-medium text-[#1C211D] focus:ring-1 focus:ring-[#3A5A40]"
-                >
-                  <option value="ALL">Todas las Categorías</option>
-                  <option value="Tela">Telas / Tejidos</option>
-                  <option value="Avío / Fornitura">Avíos / Fornituras</option>
-                  <option value="Hilo">Hilos / Hilados</option>
-                  <option value="Entretela">Entretelas</option>
-                  <option value="Empaque / Etiqueta">Empaque / Etiquetas</option>
-                </select>
-              </div>
-
-              {/* Catalog Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#FAF8F5] text-[#5F6B61] font-bold border-b border-[#E6E1D8] text-[10px] uppercase">
-                    <tr>
-                      <th className="p-3">SKU</th>
-                      <th className="p-3">Materia Prima</th>
-                      <th className="p-3">Categoría</th>
-                      <th className="p-3 text-right">Stock Actual</th>
-                      <th className="p-3 text-right">En Tránsito</th>
-                      <th className="p-3 text-right">MOQ Proveedor</th>
-                      <th className="p-3 text-right">Costo Unitario</th>
-                      <th className="p-3 text-center">Proveedor & Lead Time</th>
-                      <th className="p-3 text-center">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F2EEE6]">
-                    {filteredCatalogMaterials.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="p-8 text-center">
-                          <div className="space-y-2">
-                            <Package className="w-8 h-8 text-[#D5CEC2] mx-auto" />
-                            <div className="text-xs font-bold text-[#1C211D]">No hay materias primas registradas</div>
-                            <p className="text-[11px] text-[#5F6B61] max-w-sm mx-auto">
-                              Registre telas, avíos, botones o hilos en su inventario, o use la importación masiva mediante CSV.
-                            </p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredCatalogMaterials.map((mat) => (
-                      <tr key={mat.id} className="hover:bg-[#FAF8F5]">
-                        <td className="p-3 font-mono text-[11px] font-semibold text-[#5F6B61]">
-                          {mat.sku}
-                        </td>
-                        <td className="p-3">
-                          <div className="font-bold text-[#1C211D]">{mat.name}</div>
-                          {mat.color && (
-                            <div className="text-[10px] text-[#5F6B61]">Color: {mat.color}</div>
-                          )}
-                        </td>
-                        <td className="p-3">
-                          <span className="px-2 py-0.5 bg-[#F2EEE6] text-[#5F6B61] rounded text-[10px] font-medium">
-                            {mat.category}
-                          </span>
-                        </td>
-                        <td className="p-3 text-right font-bold text-[#1C211D]">
-                          {mat.currentStock.toLocaleString()} {mat.unit}
-                        </td>
-                        <td className="p-3 text-right text-[#3A5A40] font-medium">
-                          {mat.inTransitStock.toLocaleString()} {mat.unit}
-                        </td>
-                        <td className="p-3 text-right text-[#5F6B61]">
-                          {mat.minOrderQuantity} {mat.unit}
-                        </td>
-                        <td className="p-3 text-right font-bold text-[#1C211D]">
-                          {formatCOP(mat.unitCost, false)} / {mat.unit}
-                        </td>
-                        <td className="p-3 text-center">
-                          <div className="font-semibold text-[#1C211D]">{mat.supplierName}</div>
-                          <div className="text-[10px] text-[#5F6B61] flex items-center justify-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {mat.leadTimeDays} días
-                          </div>
-                        </td>
-                        <td className="p-3 text-center">
-                          <button
-                            onClick={() => handleDeleteMaterial(mat.id)}
-                            className="p-1 text-[#8F9990] hover:text-[#B33927] rounded transition-colors"
-                            title="Eliminar insumo"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    )))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <RawMaterialsManager
+              materials={rawMaterials}
+              garments={garments}
+              onAddMaterial={handleAddMaterial}
+              onUpdateMaterial={handleUpdateMaterial}
+              onToggleMaterialActive={handleToggleMaterialActive}
+              onDeleteMaterial={handleDeleteMaterial}
+              onOpenCSVModal={() => setIsCSVModalOpen(true)}
+            />
           )
         )}
 
@@ -1128,17 +1036,15 @@ export default function App() {
         onApplyScenario={handleApplyWhatIf}
       />
 
-      <NewGarmentModal
-        isOpen={isNewGarmentOpen}
-        onClose={() => setIsNewGarmentOpen(false)}
+      <GarmentModal
+        isOpen={isGarmentModalOpen}
+        onClose={() => {
+          setIsGarmentModalOpen(false);
+          setEditingGarment(null);
+        }}
         rawMaterials={rawMaterials}
-        onAddGarment={handleAddGarment}
-      />
-
-      <NewMaterialModal
-        isOpen={isNewMaterialOpen}
-        onClose={() => setIsNewMaterialOpen(false)}
-        onAddMaterial={handleAddMaterial}
+        onSaveGarment={handleSaveGarment}
+        garmentToEdit={editingGarment}
       />
     </div>
   );

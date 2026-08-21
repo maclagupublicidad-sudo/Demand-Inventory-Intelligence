@@ -1,5 +1,12 @@
-import React, { useState } from 'react';
-import { Garment, RawMaterial, BOMItem, OperationRouting, QualityCheckpoint, GarmentCosting } from '../types';
+import React, { useState, useMemo } from 'react';
+import {
+  Garment,
+  RawMaterial,
+  BOMItem,
+  OperationRouting,
+  QualityCheckpoint,
+  GarmentCosting,
+} from '../types';
 import {
   Layers,
   Plus,
@@ -16,7 +23,17 @@ import {
   TrendingUp,
   FileText,
   LayoutGrid,
-  Table as TableIcon,
+  Search,
+  Filter,
+  CheckCircle2,
+  XCircle,
+  Edit2,
+  Info,
+  DollarSign,
+  Package,
+  Sparkles,
+  Tag,
+  AlertTriangle,
 } from 'lucide-react';
 import { formatCOP } from '../utils/formatters';
 import { exportGarmentTechPackPDF } from '../services/pdfExporter';
@@ -25,29 +42,43 @@ interface BOMExplosionViewProps {
   garments: Garment[];
   rawMaterials: RawMaterial[];
   onUpdateGarmentBOM: (garmentId: string, updatedBOM: BOMItem[]) => void;
+  onUpdateGarment?: (updatedGarment: Garment) => void;
+  onToggleGarmentActive?: (garmentId: string) => void;
+  onDeleteGarment?: (garmentId: string) => void;
+  onOpenNewGarmentModal?: () => void;
+  onOpenEditGarmentModal?: (garment: Garment) => void;
   onUpdateGarmentOperations?: (garmentId: string, updatedOperations: OperationRouting[]) => void;
   onUpdateGarmentQuality?: (garmentId: string, updatedQC: QualityCheckpoint[]) => void;
   onUpdateGarmentCosting?: (garmentId: string, updatedCosting: GarmentCosting) => void;
-  onOpenNewGarmentModal?: () => void;
 }
 
 export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
   garments,
   rawMaterials,
   onUpdateGarmentBOM,
+  onUpdateGarment,
+  onToggleGarmentActive,
+  onDeleteGarment,
+  onOpenNewGarmentModal,
+  onOpenEditGarmentModal,
   onUpdateGarmentOperations,
   onUpdateGarmentQuality,
   onUpdateGarmentCosting,
-  onOpenNewGarmentModal,
 }) => {
   const [selectedGarmentId, setSelectedGarmentId] = useState<string>(garments[0]?.id || '');
   const [activeSubTab, setActiveSubTab] = useState<'bom' | 'tiempos' | 'calidad' | 'costeo'>('bom');
-  const [isEditingWaste, setIsEditingWaste] = useState(false);
+  const [isEditingWaste, setIsEditingWaste] = useState(true); // default true for high productivity
+
+  // Filter & Search states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
 
   // New BOM Item state
   const [newMaterialId, setNewMaterialId] = useState<string>('');
-  const [newMaterialQty, setNewMaterialQty] = useState<number>(0);
-  const [newMaterialWaste, setNewMaterialWaste] = useState<number>(3);
+  const [newMaterialQty, setNewMaterialQty] = useState<number>(0.85);
+  const [newMaterialWaste, setNewMaterialWaste] = useState<number>(5);
+  const [newMaterialNotes, setNewMaterialNotes] = useState<string>('');
 
   // New Operation state
   const [newOpName, setNewOpName] = useState('');
@@ -71,9 +102,48 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
   const [simMaquilaFinish, setSimMaquilaFinish] = useState<number>(1500);
   const [simMaquilaLogistics, setSimMaquilaLogistics] = useState<number>(600);
 
-  const selectedGarment = garments.find((g) => g.id === selectedGarmentId) || garments[0];
+  // Filtered Garments Catalog
+  const filteredGarments = useMemo(() => {
+    return garments.filter((g) => {
+      const isActive = g.isActive !== false;
+      if (statusFilter === 'ACTIVE' && !isActive) return false;
+      if (statusFilter === 'INACTIVE' && isActive) return false;
 
+      if (categoryFilter !== 'ALL' && g.category !== categoryFilter) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = g.name.toLowerCase().includes(q);
+        const matchSku = g.sku.toLowerCase().includes(q);
+        const matchCat = g.category.toLowerCase().includes(q);
+        if (!matchName && !matchSku && !matchCat) return false;
+      }
+
+      return true;
+    });
+  }, [garments, searchQuery, categoryFilter, statusFilter]);
+
+  // Categories list
+  const garmentCategories = useMemo(() => {
+    const set = new Set<string>();
+    garments.forEach((g) => {
+      if (g.category) set.add(g.category);
+    });
+    return Array.from(set);
+  }, [garments]);
+
+  // Selected Garment
+  const selectedGarment = useMemo(() => {
+    return (
+      garments.find((g) => g.id === selectedGarmentId) ||
+      filteredGarments[0] ||
+      garments[0]
+    );
+  }, [garments, selectedGarmentId, filteredGarments]);
+
+  // Cost Calculation
   const calculateGarmentMaterialCost = (garment: Garment): number => {
+    if (!garment?.bom) return 0;
     return garment.bom.reduce((acc, item) => {
       const mat = rawMaterials.find((m) => m.id === item.rawMaterialId);
       const unitCost = mat?.unitCost || 0;
@@ -82,10 +152,35 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
     }, 0);
   };
 
+  const rawMaterialCost = selectedGarment ? calculateGarmentMaterialCost(selectedGarment) : 0;
+  const activeTotalMfgMin =
+    selectedGarment?.operationsRouting && selectedGarment.operationsRouting.length > 0
+      ? selectedGarment.operationsRouting.reduce((s, o) => s + o.standardMinutes, 0)
+      : selectedGarment?.productionTimes?.totalManufacturingMinutes || 25;
+
+  const liveInternalMOD = Math.round(activeTotalMfgMin * simLaborRate);
+  const liveInternalCIF = Math.round(activeTotalMfgMin * simOverheadRate);
+  const liveTotalInternal = Math.round(rawMaterialCost + liveInternalMOD + liveInternalCIF);
+  const liveTotalMaquila = Math.round(
+    rawMaterialCost + simMaquilaCut + simMaquilaSew + simMaquilaFinish + simMaquilaLogistics
+  );
+
+  // Selected Material helper for new BOM item
+  const selectedNewMat = rawMaterials.find((m) => m.id === newMaterialId);
+
+  // Handle adding Material to BOM
   const handleAddMaterialToBOM = () => {
-    if (!selectedGarment || !newMaterialId || newMaterialQty <= 0) return;
+    if (!selectedGarment || !newMaterialId || newMaterialQty <= 0) {
+      alert('Por favor seleccione un insumo y defina un consumo unitario válido (> 0).');
+      return;
+    }
     const material = rawMaterials.find((m) => m.id === newMaterialId);
     if (!material) return;
+
+    if (selectedGarment.bom.some((b) => b.rawMaterialId === newMaterialId)) {
+      alert('Este insumo ya se encuentra agregado a la ficha técnica de esta prenda.');
+      return;
+    }
 
     const newItem: BOMItem = {
       rawMaterialId: material.id,
@@ -94,14 +189,16 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
       wastePercent: newMaterialWaste,
       unit: material.unit,
       category: material.category,
+      notes: newMaterialNotes.trim() || undefined,
     };
 
     const updatedBOM = [...selectedGarment.bom, newItem];
     onUpdateGarmentBOM(selectedGarment.id, updatedBOM);
 
     setNewMaterialId('');
-    setNewMaterialQty(0);
-    setNewMaterialWaste(3);
+    setNewMaterialQty(0.85);
+    setNewMaterialWaste(5);
+    setNewMaterialNotes('');
   };
 
   const handleDeleteBOMItem = (index: number) => {
@@ -121,12 +218,12 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
   const handleUpdateItemQuantity = (index: number, newQty: number) => {
     if (!selectedGarment) return;
     const updatedBOM = selectedGarment.bom.map((item, i) =>
-      i === index ? { ...item, quantityPerGarment: Math.max(0, newQty) } : item
+      i === index ? { ...item, quantityPerGarment: Math.max(0.001, newQty) } : item
     );
     onUpdateGarmentBOM(selectedGarment.id, updatedBOM);
   };
 
-  // Operations routing handlers
+  // Operations Routing Handlers
   const handleAddOperation = () => {
     if (!selectedGarment || !newOpName || newOpSAM <= 0 || !onUpdateGarmentOperations) return;
     const currentOps = selectedGarment.operationsRouting || [];
@@ -135,11 +232,11 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
     const newOp: OperationRouting = {
       id: `op_${Date.now()}`,
       stepNumber: newStepNum,
-      operationName: newOpName,
-      department: newOpDept,
-      machinery: newOpMachinery,
+      operationName: newOpName.trim(),
+      department: newOpDept as any,
+      machinery: newOpMachinery.trim(),
       standardMinutes: newOpSAM,
-      criticalNotes: newOpNotes,
+      criticalNotes: newOpNotes.trim() || undefined,
     };
 
     const updatedOps = [...currentOps, newOp];
@@ -159,16 +256,16 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
     onUpdateGarmentOperations(selectedGarment.id, updatedOps);
   };
 
-  // Quality Checkpoints handlers
+  // Quality Checkpoints Handlers
   const handleAddQualityCheckpoint = () => {
     if (!selectedGarment || !newQCParam || !onUpdateGarmentQuality) return;
     const currentQC = selectedGarment.qualityCheckpoints || [];
     const newQC: QualityCheckpoint = {
       id: `qc_${Date.now()}`,
       stage: newQCStage,
-      parameter: newQCParam,
-      tolerance: newQCTol,
-      potentialDefect: newQCDefect,
+      parameter: newQCParam.trim(),
+      tolerance: newQCTol.trim(),
+      potentialDefect: newQCDefect.trim() || 'Defecto visual / dimensional',
       severity: newQCSeverity,
     };
     const updated = [...currentQC, newQC];
@@ -186,40 +283,28 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
   // Save Costing
   const handleSaveCosting = () => {
     if (!selectedGarment || !onUpdateGarmentCosting) return;
-    const activeTotalMfgMin =
-      selectedGarment.operationsRouting && selectedGarment.operationsRouting.length > 0
-        ? selectedGarment.operationsRouting.reduce((s, o) => s + o.standardMinutes, 0)
-        : selectedGarment.productionTimes?.totalManufacturingMinutes || 25;
-
-    const rawMatCost = calculateGarmentMaterialCost(selectedGarment);
-    const modCost = Math.round(activeTotalMfgMin * simLaborRate);
-    const cifCost = Math.round(activeTotalMfgMin * simOverheadRate);
-    const totalInternal = rawMatCost + modCost + cifCost;
-
-    const totalMaquila =
-      rawMatCost + simMaquilaCut + simMaquilaSew + simMaquilaFinish + simMaquilaLogistics;
-
     const updatedCosting: GarmentCosting = {
-      rawMaterialCost: rawMatCost,
+      rawMaterialCost,
       laborCostPerMinute: simLaborRate,
-      directLaborCost: modCost,
+      directLaborCost: liveInternalMOD,
       overheadCostPerMinute: simOverheadRate,
-      overheadCost: cifCost,
-      totalInternalCost: totalInternal,
+      overheadCost: liveInternalCIF,
+      totalInternalCost: liveTotalInternal,
       maquilaRates: {
         cuttingCostPerUnit: simMaquilaCut,
         sewingCostPerUnit: simMaquilaSew,
         finishingCostPerUnit: simMaquilaFinish,
         transportPerUnit: simMaquilaLogistics,
-        totalMaquilaUnitCost: totalMaquila,
+        totalMaquilaUnitCost: liveTotalMaquila,
       },
       targetMarginPercent:
         selectedGarment.retailPrice > 0
-          ? ((selectedGarment.retailPrice - totalInternal) / selectedGarment.retailPrice) * 100
+          ? ((selectedGarment.retailPrice - liveTotalInternal) / selectedGarment.retailPrice) * 100
           : 45,
     };
 
     onUpdateGarmentCosting(selectedGarment.id, updatedCosting);
+    alert('Estructura de costos guardada exitosamente.');
   };
 
   const exportGarmentsToCSV = () => {
@@ -234,6 +319,7 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
       'SAM Total Manufactura (min)',
       'Costo Total Materiales COP',
       'Precio Venta PVP COP',
+      'Estado',
     ];
 
     const rows = garments.map((g) => [
@@ -247,6 +333,7 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
       g.productionTimes?.totalManufacturingMinutes || 25,
       calculateGarmentMaterialCost(g).toFixed(2),
       g.retailPrice,
+      g.isActive !== false ? 'Activa' : 'Desactivada',
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
@@ -259,42 +346,25 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
     document.body.removeChild(link);
   };
 
-  const rawMaterialCost = selectedGarment ? calculateGarmentMaterialCost(selectedGarment) : 0;
-  const activeTotalMfgMin =
-    selectedGarment?.operationsRouting && selectedGarment.operationsRouting.length > 0
-      ? selectedGarment.operationsRouting.reduce((s, o) => s + o.standardMinutes, 0)
-      : selectedGarment?.productionTimes?.totalManufacturingMinutes || 25;
-
-  const liveInternalMOD = Math.round(activeTotalMfgMin * simLaborRate);
-  const liveInternalCIF = Math.round(activeTotalMfgMin * simOverheadRate);
-  const liveTotalInternal = Math.round(rawMaterialCost + liveInternalMOD + liveInternalCIF);
-  const liveTotalMaquila = Math.round(
-    rawMaterialCost + simMaquilaCut + simMaquilaSew + simMaquilaFinish + simMaquilaLogistics
-  );
-  const internalSavingsPerUnit = liveTotalMaquila - liveTotalInternal;
-  const batchSavings = selectedGarment
-    ? internalSavingsPerUnit * selectedGarment.targetSales
-    : 0;
-
   if (garments.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-[#E6E1D8] p-10 sm:p-14 text-center shadow-xs space-y-4">
-        <div className="w-14 h-14 rounded-2xl bg-[#EBF2EC] text-[#3A5A40] flex items-center justify-center mx-auto">
-          <Scissors className="w-7 h-7" />
+      <div className="bg-white rounded-2xl border border-[#E6E1D8] p-10 sm:p-14 text-center shadow-xs space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-[#EBF2EC] text-[#3A5A40] flex items-center justify-center mx-auto">
+          <Scissors className="w-8 h-8" />
         </div>
         <div className="space-y-1">
           <h3 className="text-base sm:text-lg font-bold text-[#1C211D]">
             No hay prendas ni fichas técnicas registradas
           </h3>
           <p className="text-xs sm:text-sm text-[#5F6B61] max-w-md mx-auto">
-            Registre sus prendas, consumos de tela por unidad (BOM), costos de mano de obra y hojas de ruta para comenzar la planeación.
+            Registre sus prendas, configure la relación con sus materias primas (BOM) y defina los consumos unitarios por prenda para activar el planificador MRP.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           {onOpenNewGarmentModal && (
             <button
               onClick={onOpenNewGarmentModal}
-              className="px-4 py-2 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95"
+              className="px-4 py-2.5 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-2 cursor-pointer active:scale-95"
               id="btn-empty-create-garment"
             >
               <Plus className="w-4 h-4" />
@@ -309,104 +379,176 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Mobile-Only Garment Selector Top Bar (screens < lg) */}
-      <div className="lg:hidden bg-white p-3.5 rounded-xl border border-[#E6E1D8] shadow-xs space-y-2.5">
+      <div className="lg:hidden bg-white p-4 rounded-xl border border-[#E6E1D8] shadow-xs space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-[#1C211D]">Prenda Seleccionada:</span>
-          {onOpenNewGarmentModal && (
-            <button
-              onClick={onOpenNewGarmentModal}
-              className="px-2.5 py-1 bg-[#3A5A40] text-white rounded-lg text-xs font-bold flex items-center gap-1 active:scale-95 touch-manipulation"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Nueva Prenda
-            </button>
-          )}
+          <span className="text-xs font-bold text-[#1C211D] flex items-center gap-1.5">
+            <Scissors className="w-4 h-4 text-[#3A5A40]" />
+            Prenda Seleccionada:
+          </span>
+          <div className="flex items-center gap-1.5">
+            {selectedGarment && onOpenEditGarmentModal && (
+              <button
+                onClick={() => onOpenEditGarmentModal(selectedGarment)}
+                className="px-2.5 py-1 bg-white border border-[#D5CEC2] text-[#1C211D] rounded-lg text-xs font-semibold flex items-center gap-1 active:scale-95"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                Editar
+              </button>
+            )}
+            {onOpenNewGarmentModal && (
+              <button
+                onClick={onOpenNewGarmentModal}
+                className="px-2.5 py-1 bg-[#3A5A40] text-white rounded-lg text-xs font-bold flex items-center gap-1 active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Nueva
+              </button>
+            )}
+          </div>
         </div>
         <select
-          value={selectedGarmentId}
+          value={selectedGarment?.id || ''}
           onChange={(e) => setSelectedGarmentId(e.target.value)}
           className="w-full bg-[#FAF8F5] border border-[#D5CEC2] rounded-lg px-3 py-2 text-xs font-bold text-[#1C211D]"
           id="mobile-select-garment"
         >
           {garments.map((g) => (
             <option key={g.id} value={g.id}>
-              {g.name} [{g.sku}] - Meta: {g.targetSales.toLocaleString()} u
+              {g.name} [{g.sku}] {g.isActive === false ? '(Desactivada)' : ''}
             </option>
           ))}
         </select>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Garments Desktop Catalog (hidden on small screens, sidebar on desktop) */}
-        <div className="hidden lg:flex bg-white rounded-xl border border-[#E6E1D8] shadow-xs p-5 flex-col h-fit">
-          <div className="flex items-center justify-between mb-4">
+        {/* Left Column: Garments Desktop Catalog (Sidebar on Desktop) */}
+        <div className="hidden lg:flex bg-white rounded-2xl border border-[#E6E1D8] shadow-xs p-4 flex-col h-fit space-y-3">
+          {/* Header */}
+          <div className="flex items-center justify-between">
             <div>
               <h3 className="font-bold text-sm text-[#1C211D]">Catálogo de Prendas</h3>
-              <p className="text-xs text-[#5F6B61]">Fichas Técnicas & Manufactura</p>
+              <p className="text-[11px] text-[#5F6B61]">Gestión & Fichas Técnicas</p>
             </div>
             {onOpenNewGarmentModal && (
               <button
                 onClick={onOpenNewGarmentModal}
-                className="px-2.5 py-1.5 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors active:scale-95"
+                className="px-2.5 py-1.5 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-colors active:scale-95 cursor-pointer"
                 id="btn-add-new-garment"
               >
                 <Plus className="w-3.5 h-3.5" />
-                Nueva Prenda
+                <span>Nueva Prenda</span>
               </button>
             )}
           </div>
 
-          <div className="space-y-2">
-            {garments.map((garment) => {
-              const isSelected = garment.id === selectedGarment?.id;
-              const totalCost = garment.costing?.totalInternalCost || garment.costEstimate;
+          {/* Search & Category Filter */}
+          <div className="space-y-2 pt-1 border-t border-[#E6E1D8]">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-[#8F9990] absolute left-2.5 top-2.5" />
+              <input
+                type="text"
+                placeholder="Buscar prenda o SKU..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 bg-[#FAF8F5] border border-[#D5CEC2] rounded-lg text-xs text-[#1C211D] placeholder-[#8F9990] focus:ring-1 focus:ring-[#3A5A40]"
+              />
+            </div>
 
-              return (
-                <button
-                  key={garment.id}
-                  onClick={() => setSelectedGarmentId(garment.id)}
-                  className={`w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between ${
-                    isSelected
-                      ? 'bg-[#EBF2EC] border-[#3A5A40] text-[#1C211D] shadow-2xs ring-1 ring-[#3A5A40]'
-                      : 'bg-white border-[#E6E1D8] hover:bg-[#FAF8F5] text-[#1C211D]'
-                  }`}
-                >
-                  <div className="w-full pr-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-[#1C211D] truncate">{garment.name}</span>
-                      <span className="text-[10px] font-mono font-bold bg-[#F2EEE6] text-[#5F6B61] px-1.5 py-0.2 rounded">
+            <div className="grid grid-cols-2 gap-1.5">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full p-1 bg-[#FAF8F5] border border-[#D5CEC2] rounded text-[11px] text-[#1C211D]"
+              >
+                <option value="ALL">Todas las líneas</option>
+                {garmentCategories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="w-full p-1 bg-[#FAF8F5] border border-[#D5CEC2] rounded text-[11px] text-[#1C211D]"
+              >
+                <option value="ALL">Todos los estados</option>
+                <option value="ACTIVE">Solo Activas</option>
+                <option value="INACTIVE">Solo Desactivadas</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Garment List Cards */}
+          <div className="space-y-2 max-h-[580px] overflow-y-auto pr-1">
+            {filteredGarments.length === 0 ? (
+              <div className="p-6 text-center text-xs text-[#5F6B61] space-y-1">
+                <Scissors className="w-6 h-6 text-[#D5CEC2] mx-auto" />
+                <p className="font-semibold">No se encontraron prendas</p>
+                <p className="text-[10px]">Ajuste los filtros de búsqueda.</p>
+              </div>
+            ) : (
+              filteredGarments.map((garment) => {
+                const isSelected = garment.id === selectedGarment?.id;
+                const totalCost = calculateGarmentMaterialCost(garment);
+                const isAct = garment.isActive !== false;
+
+                return (
+                  <div
+                    key={garment.id}
+                    onClick={() => setSelectedGarmentId(garment.id)}
+                    className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between relative group ${
+                      isSelected
+                        ? 'bg-[#EBF2EC] border-[#3A5A40] text-[#1C211D] shadow-2xs ring-1 ring-[#3A5A40]'
+                        : 'bg-white border-[#E6E1D8] hover:bg-[#FAF8F5] text-[#1C211D]'
+                    } ${!isAct ? 'opacity-70 bg-stone-50' : ''}`}
+                  >
+                    <div className="flex items-center justify-between gap-1.5">
+                      <span className="font-bold text-xs text-[#1C211D] truncate max-w-[170px]">
+                        {garment.name}
+                      </span>
+                      <span
+                        className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                          isAct
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : 'bg-stone-100 text-stone-600 border-stone-300'
+                        }`}
+                      >
+                        {isAct ? 'Activa' : 'Inactiva'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-[#5F6B61] font-mono mt-1">
+                      <span>SKU: {garment.sku}</span>
+                      <span className="bg-[#F2EEE6] text-[#5F6B61] px-1 rounded font-sans font-medium">
                         {garment.category.split('/')[0]}
                       </span>
                     </div>
-                    <div className="text-[10px] text-[#5F6B61] font-mono mt-0.5">
-                      SKU: {garment.sku} | Meta: {garment.targetSales.toLocaleString()} u
-                    </div>
-                    <div className="flex items-center justify-between mt-1 text-[11px]">
-                      <span className="text-[#3A5A40] font-bold">
-                        Costo Int: {formatCOP(totalCost)}
+
+                    <div className="flex items-center justify-between mt-2 text-[11px] pt-1.5 border-t border-[#EAE6DF]">
+                      <span className="text-[#3A5A40] font-bold font-mono">
+                        {formatCOP(totalCost, false)}
                       </span>
-                      <span className="text-[#5F6B61] font-medium text-[10px]">
-                        SAM: {garment.productionTimes?.sewingSAM || 20} min
+                      <span className="text-[#5F6B61] text-[10px]">
+                        {garment.bom.length} {garment.bom.length === 1 ? 'insumo' : 'insumos'}
                       </span>
                     </div>
                   </div>
-                  <ChevronRight
-                    className={`w-4 h-4 shrink-0 ${isSelected ? 'text-[#3A5A40]' : 'text-[#8F9990]'}`}
-                  />
-                </button>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           {/* Global Export Database to CSV */}
-          <div className="mt-5 pt-4 border-t border-[#E6E1D8]">
+          <div className="pt-3 border-t border-[#E6E1D8]">
             <button
               onClick={exportGarmentsToCSV}
-              className="w-full py-2 px-3 bg-[#FAF8F5] hover:bg-[#F2EEE6] border border-[#D5CEC2] rounded-lg text-xs font-bold text-[#1C211D] flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+              className="w-full py-2 px-3 bg-[#FAF8F5] hover:bg-[#F2EEE6] border border-[#D5CEC2] rounded-xl text-xs font-bold text-[#1C211D] flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
               title="Descargar base de datos completa de fichas técnicas en CSV"
             >
               <Download className="w-3.5 h-3.5 text-[#3A5A40]" />
-              Exportar Base de Datos CSV
+              Exportar Prendas en CSV
             </button>
           </div>
         </div>
@@ -415,74 +557,140 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
         {selectedGarment && (
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Garment Header Card */}
-            <div className="bg-white p-4 sm:p-6 rounded-xl border border-[#E6E1D8] shadow-xs space-y-4">
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E6E1D8] shadow-xs space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-[#E6E1D8] pb-4">
-                <div>
+                <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2 py-0.5 bg-[#EBF2EC] text-[#233829] text-[10px] font-bold rounded-md uppercase border border-[#D4E3D7]">
                       {selectedGarment.category}
                     </span>
-                    <span className="text-xs text-[#5F6B61] font-mono">SKU: {selectedGarment.sku}</span>
+                    <span className="text-xs text-[#5F6B61] font-mono font-bold">
+                      SKU: {selectedGarment.sku}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
+                        selectedGarment.isActive !== false
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : 'bg-stone-100 text-stone-600 border-stone-300'
+                      }`}
+                    >
+                      {selectedGarment.isActive !== false ? 'Prenda Activa' : 'Prenda Desactivada'}
+                    </span>
                   </div>
-                  <h2 className="text-lg sm:text-xl font-bold text-[#1C211D] mt-1">{selectedGarment.name}</h2>
-                  {selectedGarment.techPackNotes && (
-                    <p className="text-xs text-[#5F6B61] mt-1 italic">
-                      "{selectedGarment.techPackNotes}"
+
+                  <h2 className="text-lg sm:text-xl font-bold text-[#1C211D]">
+                    {selectedGarment.name}
+                  </h2>
+
+                  {selectedGarment.description && (
+                    <p className="text-xs text-[#5F6B61]">
+                      {selectedGarment.description}
                     </p>
                   )}
                 </div>
 
-                {/* Right side: PVP + Export PDF Button */}
-                <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between gap-2">
+                {/* Right side: PVP + Action Toolbar */}
+                <div className="flex flex-row sm:flex-col items-end justify-between gap-2.5">
                   <div className="text-left sm:text-right">
                     <p className="text-[10px] text-[#5F6B61] uppercase tracking-wider font-bold">
-                      Precio PVP
+                      Precio de Venta PVP
                     </p>
-                    <p className="text-base sm:text-lg font-bold text-[#3A5A40]">
+                    <p className="text-base sm:text-lg font-bold text-[#3A5A40] font-mono">
                       {formatCOP(selectedGarment.retailPrice)}
                     </p>
                   </div>
-                  <button
-                    onClick={() => exportGarmentTechPackPDF(selectedGarment, rawMaterials)}
-                    className="px-3 py-1.5 bg-[#FAF8F5] hover:bg-[#F2EEE6] border border-[#D5CEC2] rounded-lg text-xs font-bold text-[#1C211D] flex items-center gap-1.5 shadow-2xs transition-all active:scale-95"
-                    title="Descargar Ficha Técnica en PDF"
-                    id="btn-export-techpack-pdf"
-                  >
-                    <FileText className="w-3.5 h-3.5 text-[#3A5A40]" />
-                    <span>Ficha PDF</span>
-                  </button>
+
+                  <div className="flex items-center gap-1.5">
+                    {onOpenEditGarmentModal && (
+                      <button
+                        onClick={() => onOpenEditGarmentModal(selectedGarment)}
+                        className="px-3 py-1.5 bg-white hover:bg-[#FAF8F5] border border-[#D5CEC2] rounded-lg text-xs font-bold text-[#1C211D] flex items-center gap-1.5 shadow-2xs transition-all active:scale-95"
+                        id="btn-edit-garment-details"
+                        title="Editar datos maestros y ficha técnica de la prenda"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 text-[#3A5A40]" />
+                        <span>Editar</span>
+                      </button>
+                    )}
+
+                    {onToggleGarmentActive && (
+                      <button
+                        onClick={() => onToggleGarmentActive(selectedGarment.id)}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all active:scale-95 ${
+                          selectedGarment.isActive !== false
+                            ? 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-300'
+                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                        }`}
+                        title={
+                          selectedGarment.isActive !== false
+                            ? 'Desactivar prenda del plan de compras'
+                            : 'Reactivar prenda'
+                        }
+                      >
+                        {selectedGarment.isActive !== false ? 'Desactivar' : 'Activar'}
+                      </button>
+                    )}
+
+                    {onDeleteGarment && (
+                      <button
+                        onClick={() => {
+                          if (
+                            confirm(
+                              `¿Está seguro de eliminar permanentemente la prenda "${selectedGarment.name}" [${selectedGarment.sku}]?`
+                            )
+                          ) {
+                            onDeleteGarment(selectedGarment.id);
+                          }
+                        }}
+                        className="p-1.5 text-[#8F9990] hover:text-[#B33927] hover:bg-[#FAF8F5] rounded-lg transition-colors border border-transparent hover:border-[#E6E1D8]"
+                        title="Eliminar prenda"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => exportGarmentTechPackPDF(selectedGarment, rawMaterials)}
+                      className="px-3 py-1.5 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
+                      title="Descargar Ficha Técnica Oficial en PDF"
+                      id="btn-export-techpack-pdf"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Ficha PDF</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Quick Production Metrics */}
+              {/* Quick Production Metrics Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="bg-[#FAF8F5] p-3 rounded-lg border border-[#EAE6DF]">
-                  <p className="text-[10px] text-[#5F6B61] uppercase font-bold">Meta Ciclo</p>
+                <div className="bg-[#FAF8F5] p-3 rounded-xl border border-[#EAE6DF]">
+                  <p className="text-[10px] text-[#5F6B61] uppercase font-bold">Meta del Ciclo</p>
                   <p className="text-sm sm:text-base font-bold text-[#1C211D]">
                     {selectedGarment.targetSales.toLocaleString()} u
                   </p>
                 </div>
-                <div className="bg-[#FAF8F5] p-3 rounded-lg border border-[#EAE6DF]">
-                  <p className="text-[10px] text-[#5F6B61] uppercase font-bold">Stock Terminado</p>
+                <div className="bg-[#FAF8F5] p-3 rounded-xl border border-[#EAE6DF]">
+                  <p className="text-[10px] text-[#5F6B61] uppercase font-bold">Stock PT (Bodega)</p>
                   <p className="text-sm sm:text-base font-bold text-[#1C211D]">
                     {selectedGarment.finishedGoodsStock.toLocaleString()} u
                   </p>
                 </div>
-                <div className="bg-[#FAF8F5] p-3 rounded-lg border border-[#EAE6DF]">
+                <div className="bg-[#FAF8F5] p-3 rounded-xl border border-[#EAE6DF]">
                   <p className="text-[10px] text-[#5F6B61] uppercase font-bold">En Proceso (WIP)</p>
                   <p className="text-sm sm:text-base font-bold text-[#3A5A40]">
                     {selectedGarment.productionWIP.toLocaleString()} u
                   </p>
                 </div>
-                <div className="bg-[#FAF8F5] p-3 rounded-lg border border-[#EAE6DF]">
-                  <p className="text-[10px] text-[#5F6B61] uppercase font-bold">Tiempo Ciclo</p>
-                  <p className="text-sm sm:text-base font-bold text-[#1C211D]">
-                    {selectedGarment.productionTimes?.totalCycleDays || 8} días
+                <div className="bg-[#FAF8F5] p-3 rounded-xl border border-[#EAE6DF]">
+                  <p className="text-[10px] text-[#5F6B61] uppercase font-bold">Costo Materiales</p>
+                  <p className="text-sm sm:text-base font-bold text-[#1C211D] font-mono">
+                    {formatCOP(rawMaterialCost, false)}
                   </p>
                 </div>
               </div>
 
-              {/* Sub-Navigation Tabs (Touch horizontal scroll) */}
+              {/* Sub-Navigation Tabs */}
               <div className="flex border-b border-[#E6E1D8] gap-1 pt-2 overflow-x-auto no-scrollbar">
                 <button
                   onClick={() => setActiveSubTab('bom')}
@@ -491,9 +699,10 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
                       ? 'border-[#3A5A40] text-[#3A5A40]'
                       : 'border-transparent text-[#5F6B61] hover:text-[#1C211D]'
                   }`}
+                  id="tab-bom-materials"
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  1. Materiales & BOM ({selectedGarment.bom.length})
+                  1. Ficha de Materiales (BOM) & Consumos ({selectedGarment.bom.length})
                 </button>
 
                 <button
@@ -503,9 +712,10 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
                       ? 'border-[#3A5A40] text-[#3A5A40]'
                       : 'border-transparent text-[#5F6B61] hover:text-[#1C211D]'
                   }`}
+                  id="tab-bom-sam"
                 >
                   <Clock className="w-3.5 h-3.5" />
-                  2. Tiempos & Ruta SAM ({selectedGarment.operationsRouting?.length || 0})
+                  2. Tiempos SAM & Ruta ({selectedGarment.operationsRouting?.length || 0})
                 </button>
 
                 <button
@@ -515,6 +725,7 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
                       ? 'border-[#3A5A40] text-[#3A5A40]'
                       : 'border-transparent text-[#5F6B61] hover:text-[#1C211D]'
                   }`}
+                  id="tab-bom-qc"
                 >
                   <ShieldAlert className="w-3.5 h-3.5" />
                   3. Calidad & QC ({selectedGarment.qualityCheckpoints?.length || 0})
@@ -527,251 +738,308 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
                       ? 'border-[#3A5A40] text-[#3A5A40]'
                       : 'border-transparent text-[#5F6B61] hover:text-[#1C211D]'
                   }`}
+                  id="tab-bom-costing"
                 >
                   <Factory className="w-3.5 h-3.5" />
-                  4. Taller vs Maquila
+                  4. Costeo & Maquila
                 </button>
               </div>
             </div>
 
-            {/* TAB 1: BOM & MATERIALS STRUCTURE */}
+            {/* TAB 1: BOM & MATERIALS STRUCTURE & CONSUMPTION CONFIGURATION */}
             {activeSubTab === 'bom' && (
-              <div className="bg-white rounded-xl border border-[#E6E1D8] shadow-xs overflow-hidden">
-                <div className="p-3.5 sm:p-4 border-b border-[#E6E1D8] flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#FCFBF9]">
+              <div className="bg-white rounded-2xl border border-[#E6E1D8] shadow-xs overflow-hidden space-y-0">
+                {/* Header Bar */}
+                <div className="p-4 sm:p-5 border-b border-[#E6E1D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FCFBF9]">
                   <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-[#1C211D]">
-                      Estructura de Materiales & Insumos (BOM)
+                    <h3 className="font-bold text-sm text-[#1C211D] flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-[#3A5A40]" />
+                      Estructura de Materiales (BOM) & Configuración de Consumo por Prenda
                     </h3>
-                    <p className="text-[11px] text-[#5F6B61]">
-                      Consumo de telas, avíos, entretelas e hilos por unidad
+                    <p className="text-xs text-[#5F6B61] mt-0.5">
+                      Indique exactamente los insumos y consumos necesarios para fabricar 1 unidad de esta prenda.
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <span className="text-[10px] text-[#5F6B61] block">Costo Total Materiales:</span>
-                      <span className="text-sm font-bold text-[#1C211D]">
+                      <span className="text-sm font-bold text-[#3A5A40] font-mono">
                         {formatCOP(rawMaterialCost)}
                       </span>
                     </div>
-                    <button
-                      onClick={() => setIsEditingWaste(!isEditingWaste)}
-                      className="text-xs font-semibold text-[#3A5A40] hover:text-[#2D4632] flex items-center gap-1 border border-[#D5CEC2] px-2.5 py-1 rounded-lg bg-white shadow-2xs"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      {isEditingWaste ? 'Listo' : 'Editar'}
-                    </button>
                   </div>
                 </div>
 
-                {/* Mobile Cards for BOM Items */}
-                <div className="block sm:hidden p-3 space-y-2.5">
-                  {selectedGarment.bom.map((item, idx) => {
-                    const mat = rawMaterials.find((m) => m.id === item.rawMaterialId);
-                    const unitCost = mat?.unitCost || 0;
-                    const effectiveQty = item.quantityPerGarment * (1 + item.wastePercent / 100);
-                    const itemCost = effectiveQty * unitCost;
-
-                    return (
-                      <div key={idx} className="p-3 rounded-lg border border-[#E6E1D8] bg-[#FAF8F5] space-y-2">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="font-bold text-xs text-[#1C211D]">{item.rawMaterialName}</div>
-                            <div className="text-[10px] text-[#5F6B61] font-mono">{mat?.sku || item.rawMaterialId} • {item.category}</div>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteBOMItem(idx)}
-                            className="p-1 text-[#8F9990] hover:text-[#B33927]"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 text-xs bg-white p-2 rounded border border-[#EAE6DF]">
-                          <div>
-                            <span className="text-[9px] text-[#5F6B61] block">Consumo Unit</span>
-                            {isEditingWaste ? (
-                              <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={item.quantityPerGarment}
-                                onChange={(e) => handleUpdateItemQuantity(idx, parseFloat(e.target.value) || 0)}
-                                className="w-full bg-[#FAF8F5] border border-[#D5CEC2] rounded px-1 text-center font-bold text-xs"
-                              />
-                            ) : (
-                              <span className="font-bold text-[#1C211D]">{item.quantityPerGarment} {item.unit}</span>
-                            )}
-                          </div>
-                          <div>
-                            <span className="text-[9px] text-[#5F6B61] block">Merma %</span>
-                            {isEditingWaste ? (
-                              <input
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                max="30"
-                                value={item.wastePercent}
-                                onChange={(e) => handleUpdateItemWaste(idx, parseFloat(e.target.value) || 0)}
-                                className="w-full bg-[#FAF8F5] border border-[#D5CEC2] rounded px-1 text-center font-bold text-xs"
-                              />
-                            ) : (
-                              <span className="font-bold text-[#82530C]">{item.wastePercent}%</span>
-                            )}
-                          </div>
-                          <div>
-                            <span className="text-[9px] text-[#5F6B61] block">Subtotal COP</span>
-                            <span className="font-bold text-[#3A5A40]">{formatCOP(itemCost)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                {/* Pedagogical Tip / Educational Guidance Card */}
+                <div className="p-4 bg-[#EBF2EC]/70 border-b border-[#D4E3D7] flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#3A5A40] text-white flex items-center justify-center shrink-0 mt-0.5">
+                    <Sparkles className="w-4 h-4 text-amber-200" />
+                  </div>
+                  <div className="text-xs text-[#233829] space-y-1">
+                    <div className="font-bold text-xs">
+                      ¿Cómo funciona el Consumo por Prenda en TextilIQ?
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-[#2D4736]">
+                      <strong>Definición del consumo unitario:</strong> Especifique la cantidad neta que requiere cada prenda (ejemplo: <strong>una camiseta consume 0,85 kg de tela</strong> + 1 etiqueta + 0,02 conos de hilo).textilIQ aplicará el % de merma configurado para proyectar las órdenes de compra en el motor MRP.
+                    </p>
+                  </div>
                 </div>
 
-                {/* Desktop Table for BOM Items */}
-                <div className="hidden sm:block overflow-x-auto">
+                {/* Table of BOM Items */}
+                <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead className="bg-[#FAF8F5] text-[10px] font-bold uppercase text-[#5F6B61] border-b border-[#E6E1D8]">
                       <tr>
-                        <th className="px-4 py-3">Material / Insumo</th>
+                        <th className="px-4 py-3">Insumo / Materia Prima</th>
                         <th className="px-4 py-3">Categoría</th>
-                        <th className="px-4 py-3 text-right">Consumo Unit.</th>
+                        <th className="px-4 py-3 text-right">Consumo por Prenda</th>
                         <th className="px-4 py-3 text-right">Merma (%)</th>
-                        <th className="px-4 py-3 text-right">Consumo Real</th>
+                        <th className="px-4 py-3 text-right">Consumo Real (Bruto)</th>
                         <th className="px-4 py-3 text-right">Costo Unit. Insumo</th>
-                        <th className="px-4 py-3 text-right">Subtotal COP</th>
+                        <th className="px-4 py-3 text-right">Costo Componente</th>
                         <th className="px-4 py-3 text-center">Acción</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#F2EEE6]">
-                      {selectedGarment.bom.map((item, idx) => {
-                        const mat = rawMaterials.find((m) => m.id === item.rawMaterialId);
-                        const unitCost = mat?.unitCost || 0;
-                        const effectiveQty = item.quantityPerGarment * (1 + item.wastePercent / 100);
-                        const itemCost = effectiveQty * unitCost;
+                      {selectedGarment.bom.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="p-8 text-center text-[#5F6B61]">
+                            <Package className="w-8 h-8 text-[#D5CEC2] mx-auto mb-2" />
+                            <p className="font-bold text-[#1C211D]">No hay materias primas vinculadas</p>
+                            <p className="text-[11px] text-[#5F6B61] max-w-sm mx-auto mt-0.5">
+                              Utilice el formulario inferior para agregar telas, hilos, botones, cremalleras o etiquetas a esta prenda.
+                            </p>
+                          </td>
+                        </tr>
+                      ) : (
+                        selectedGarment.bom.map((item, idx) => {
+                          const mat = rawMaterials.find((m) => m.id === item.rawMaterialId);
+                          const unitCost = mat?.unitCost || 0;
+                          const effectiveQty = item.quantityPerGarment * (1 + item.wastePercent / 100);
+                          const itemCost = effectiveQty * unitCost;
 
-                        return (
-                          <tr key={idx} className="hover:bg-[#FAF8F5]">
-                            <td className="px-4 py-3">
-                              <div className="font-semibold text-[#1C211D]">{item.rawMaterialName}</div>
-                              <div className="text-[10px] text-[#8F9990]">{mat?.sku || item.rawMaterialId}</div>
-                            </td>
+                          return (
+                            <tr key={idx} className="hover:bg-[#FAF8F5] transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="font-bold text-[#1C211D]">{item.rawMaterialName}</div>
+                                <div className="text-[10px] text-[#5F6B61] font-mono">
+                                  {mat?.sku || item.rawMaterialId}
+                                  {item.notes && <span className="ml-1 text-[#8F9990]">({item.notes})</span>}
+                                </div>
+                              </td>
 
-                            <td className="px-4 py-3">
-                              <span className="text-[10px] font-medium bg-[#F2EEE6] text-[#5F6B61] px-2 py-0.5 rounded">
-                                {item.category}
-                              </span>
-                            </td>
-
-                            <td className="px-4 py-3 text-right font-mono">
-                              {isEditingWaste ? (
-                                <input
-                                  type="number"
-                                  step="0.001"
-                                  min="0"
-                                  value={item.quantityPerGarment}
-                                  onChange={(e) => handleUpdateItemQuantity(idx, parseFloat(e.target.value) || 0)}
-                                  className="w-20 bg-white border border-[#D5CEC2] rounded px-1.5 py-0.5 text-right font-bold text-xs"
-                                />
-                              ) : (
-                                <span className="font-semibold text-[#1C211D]">
-                                  {item.quantityPerGarment} {item.unit}
+                              <td className="px-4 py-3">
+                                <span className="text-[10px] font-semibold bg-[#F2EEE6] text-[#5F6B61] px-2 py-0.5 rounded">
+                                  {item.category}
                                 </span>
-                              )}
-                            </td>
+                              </td>
 
-                            <td className="px-4 py-3 text-right font-mono">
-                              {isEditingWaste ? (
-                                <input
-                                  type="number"
-                                  step="0.5"
-                                  min="0"
-                                  max="30"
-                                  value={item.wastePercent}
-                                  onChange={(e) => handleUpdateItemWaste(idx, parseFloat(e.target.value) || 0)}
-                                  className="w-16 bg-white border border-[#D5CEC2] rounded px-1.5 py-0.5 text-right font-bold text-xs"
-                                />
-                              ) : (
-                                <span className="text-[#82530C] font-semibold">{item.wastePercent}%</span>
-                              )}
-                            </td>
+                              {/* Editable Net Consumption per Garment */}
+                              <td className="px-4 py-3 text-right">
+                                <div className="inline-flex items-center gap-1 justify-end">
+                                  <input
+                                    type="number"
+                                    step="0.001"
+                                    min="0.001"
+                                    value={item.quantityPerGarment}
+                                    onChange={(e) =>
+                                      handleUpdateItemQuantity(idx, parseFloat(e.target.value) || 0)
+                                    }
+                                    className="w-20 bg-white border border-[#D5CEC2] rounded-lg px-2 py-1 text-right font-bold text-xs text-[#1C211D] focus:ring-1 focus:ring-[#3A5A40]"
+                                  />
+                                  <span className="text-[10px] font-semibold text-[#5F6B61] w-8 text-left">
+                                    {item.unit}
+                                  </span>
+                                </div>
+                              </td>
 
-                            <td className="px-4 py-3 text-right font-mono font-bold text-[#1C211D]">
-                              {effectiveQty.toFixed(3)} {item.unit}
-                            </td>
+                              {/* Editable Waste % */}
+                              <td className="px-4 py-3 text-right">
+                                <div className="inline-flex items-center gap-1 justify-end">
+                                  <input
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    max="50"
+                                    value={item.wastePercent}
+                                    onChange={(e) =>
+                                      handleUpdateItemWaste(idx, parseFloat(e.target.value) || 0)
+                                    }
+                                    className="w-14 bg-white border border-[#D5CEC2] rounded-lg px-2 py-1 text-right font-semibold text-xs text-[#82530C] focus:ring-1 focus:ring-[#3A5A40]"
+                                  />
+                                  <span className="text-[10px] text-[#5F6B61]">%</span>
+                                </div>
+                              </td>
 
-                            <td className="px-4 py-3 text-right font-mono text-[#5F6B61]">
-                              {formatCOP(unitCost, false)}
-                            </td>
+                              {/* Effective Gross Consumption */}
+                              <td className="px-4 py-3 text-right font-mono font-semibold text-[#1C211D]">
+                                {effectiveQty.toFixed(3)} {item.unit}
+                              </td>
 
-                            <td className="px-4 py-3 text-right font-mono font-bold text-[#1C211D]">
-                              {formatCOP(itemCost)}
-                            </td>
+                              {/* Unit Cost of Material */}
+                              <td className="px-4 py-3 text-right font-mono text-[#5F6B61]">
+                                {formatCOP(unitCost, false)}
+                              </td>
 
-                            <td className="px-4 py-3 text-center">
-                              <button
-                                onClick={() => handleDeleteBOMItem(idx)}
-                                className="p-1 text-[#8F9990] hover:text-[#B33927] transition-colors"
-                                title="Eliminar insumo del BOM"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              {/* Total Component Cost */}
+                              <td className="px-4 py-3 text-right font-mono font-bold text-[#3A5A40]">
+                                {formatCOP(itemCost, false)}
+                              </td>
+
+                              {/* Delete Action */}
+                              <td className="px-4 py-3 text-center">
+                                <button
+                                  onClick={() => handleDeleteBOMItem(idx)}
+                                  className="p-1.5 text-[#8F9990] hover:text-[#B33927] rounded-lg transition-colors hover:bg-stone-100"
+                                  title="Eliminar insumo de la ficha técnica"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
 
-                {/* Add Material Form */}
-                <div className="p-3.5 sm:p-4 bg-[#FAF8F5] border-t border-[#E6E1D8]">
-                  <div className="text-xs font-bold text-[#1C211D] mb-2">
-                    Agregar Insumo a la Ficha Técnica:
+                {/* Add Material to BOM Quick Panel */}
+                <div className="p-4 sm:p-5 bg-[#FAF8F5] border-t border-[#E6E1D8] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#1C211D] flex items-center gap-1.5">
+                      <Plus className="w-4 h-4 text-[#3A5A40]" />
+                      Vincular Nueva Materia Prima a esta Prenda:
+                    </span>
+                    <span className="text-[10px] text-[#5F6B61]">
+                      Seleccione del catálogo de insumos y configure el consumo unitario.
+                    </span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-                    <select
-                      value={newMaterialId}
-                      onChange={(e) => setNewMaterialId(e.target.value)}
-                      className="bg-white border border-[#D5CEC2] rounded-lg px-2.5 py-1.5 text-xs text-[#1C211D] sm:col-span-2"
-                    >
-                      <option value="">Seleccionar Insumo del Maestro...</option>
-                      {rawMaterials.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          [{m.sku}] {m.name} ({formatCOP(m.unitCost)} / {m.unit})
-                        </option>
-                      ))}
-                    </select>
 
-                    <input
-                      type="number"
-                      placeholder="Consumo Unitario"
-                      step="0.01"
-                      min="0.001"
-                      value={newMaterialQty || ''}
-                      onChange={(e) => setNewMaterialQty(parseFloat(e.target.value) || 0)}
-                      className="bg-white border border-[#D5CEC2] rounded-lg px-2.5 py-1.5 text-xs text-[#1C211D]"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                    {/* Material Selector */}
+                    <div className="sm:col-span-5">
+                      <label className="text-[10px] text-[#5F6B61] block mb-1 font-semibold">
+                        Materia Prima:
+                      </label>
+                      <select
+                        value={newMaterialId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setNewMaterialId(id);
+                          const m = rawMaterials.find((item) => item.id === id);
+                          if (m) {
+                            if (m.category === 'Tela') setNewMaterialQty(0.85);
+                            else if (m.category === 'Hilo') setNewMaterialQty(0.02);
+                            else if (m.category === 'Empaque / Etiqueta') setNewMaterialQty(1);
+                            else if (m.category === 'Botón / Broche') setNewMaterialQty(8);
+                            else setNewMaterialQty(1);
+                          }
+                        }}
+                        className="w-full p-2 bg-white border border-[#D5CEC2] rounded-xl text-xs text-[#1C211D] font-medium"
+                      >
+                        <option value="">Seleccione insumo del maestro...</option>
+                        {rawMaterials
+                          .filter((m) => m.isActive !== false)
+                          .map((m) => (
+                            <option key={m.id} value={m.id}>
+                              [{m.sku}] {m.name} ({m.unit}) • {formatCOP(m.unitCost, false)}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
 
-                    <input
-                      type="number"
-                      placeholder="Merma % (ej 5)"
-                      step="0.5"
-                      min="0"
-                      max="30"
-                      value={newMaterialWaste || ''}
-                      onChange={(e) => setNewMaterialWaste(parseFloat(e.target.value) || 0)}
-                      className="bg-white border border-[#D5CEC2] rounded-lg px-2.5 py-1.5 text-xs text-[#1C211D]"
-                    />
+                    {/* Unit Consumption Input */}
+                    <div className="sm:col-span-3">
+                      <label className="text-[10px] text-[#5F6B61] block mb-1 font-semibold">
+                        Consumo Unitario:
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.001"
+                          min="0.001"
+                          value={newMaterialQty}
+                          onChange={(e) => setNewMaterialQty(parseFloat(e.target.value) || 0)}
+                          className="w-full p-2 bg-white border border-[#D5CEC2] rounded-xl font-bold text-xs text-[#1C211D]"
+                          placeholder="0.85"
+                        />
+                        <span className="absolute right-3 top-2 text-xs font-semibold text-[#8F9990]">
+                          {selectedNewMat?.unit || 'u'}
+                        </span>
+                      </div>
+                    </div>
 
-                    <button
-                      type="button"
-                      onClick={handleAddMaterialToBOM}
-                      disabled={!newMaterialId}
-                      className="px-3 py-1.5 bg-[#3A5A40] hover:bg-[#2D4632] disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs active:scale-95"
-                    >
-                      + Agregar Insumo
-                    </button>
+                    {/* Waste Percent Input */}
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] text-[#5F6B61] block mb-1 font-semibold">
+                        Merma (%):
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          max="50"
+                          value={newMaterialWaste}
+                          onChange={(e) => setNewMaterialWaste(parseFloat(e.target.value) || 0)}
+                          className="w-full p-2 bg-white border border-[#D5CEC2] rounded-xl text-xs text-[#1C211D]"
+                          placeholder="5"
+                        />
+                        <span className="absolute right-3 top-2 text-xs font-semibold text-[#8F9990]">%</span>
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="sm:col-span-2 flex items-end">
+                      <button
+                        type="button"
+                        onClick={handleAddMaterialToBOM}
+                        disabled={!newMaterialId}
+                        className="w-full p-2 bg-[#3A5A40] hover:bg-[#2D4632] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1 active:scale-95 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Vincular Insumo</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Financial Summary Box */}
+                <div className="p-4 bg-[#FCFBF9] border-t border-[#E6E1D8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <span className="text-[10px] text-[#5F6B61] block uppercase font-bold">
+                        Costo Materiales Prenda:
+                      </span>
+                      <span className="text-base font-bold text-[#3A5A40] font-mono">
+                        {formatCOP(rawMaterialCost)}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-[#5F6B61] block uppercase font-bold">
+                        Margen Bruto de Materiales:
+                      </span>
+                      <span className="text-base font-bold text-[#1C211D]">
+                        {selectedGarment.retailPrice > 0
+                          ? `${(
+                              ((selectedGarment.retailPrice - rawMaterialCost) /
+                                selectedGarment.retailPrice) *
+                              100
+                            ).toFixed(1)}%`
+                          : 'N/A'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-[#5F6B61] block uppercase font-bold">
+                        Inversión Insumos (Meta {selectedGarment.targetSales.toLocaleString()} u):
+                      </span>
+                      <span className="text-base font-bold text-[#1C211D] font-mono">
+                        {formatCOP(rawMaterialCost * selectedGarment.targetSales)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -845,41 +1113,8 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
                     </span>
                   </div>
 
-                  {/* Operations on mobile: Cards */}
-                  <div className="block sm:hidden p-3 space-y-2">
-                    {(!selectedGarment.operationsRouting || selectedGarment.operationsRouting.length === 0) ? (
-                      <p className="text-xs text-[#8F9990] text-center py-4">No hay operaciones registradas aún.</p>
-                    ) : (
-                      selectedGarment.operationsRouting.map((op) => (
-                        <div key={op.id} className="p-3 rounded-lg border border-[#E6E1D8] bg-[#FAF8F5] flex items-start justify-between gap-2">
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-xs text-[#3A5A40]">#{op.stepNumber}</span>
-                              <span className="font-bold text-xs text-[#1C211D]">{op.operationName}</span>
-                            </div>
-                            <div className="text-[10px] text-[#5F6B61] mt-0.5">
-                              {op.department} • {op.machinery}
-                            </div>
-                            {op.criticalNotes && (
-                              <div className="text-[9px] text-[#8F9990] italic mt-0.5">{op.criticalNotes}</div>
-                            )}
-                          </div>
-                          <div className="text-right shrink-0">
-                            <span className="font-bold text-xs text-[#3A5A40] block">{op.standardMinutes} min</span>
-                            <button
-                              onClick={() => handleDeleteOperation(op.id)}
-                              className="text-[#8F9990] hover:text-[#B33927] mt-1"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  {/* Operations on desktop: Table */}
-                  <div className="hidden sm:block overflow-x-auto">
+                  {/* Operations Table */}
+                  <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead className="bg-[#FAF8F5] text-[10px] font-bold uppercase text-[#5F6B61] border-b border-[#E6E1D8]">
                         <tr>
@@ -893,83 +1128,96 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#F2EEE6]">
-                        {selectedGarment.operationsRouting?.map((op) => (
-                          <tr key={op.id} className="hover:bg-[#FAF8F5]">
-                            <td className="p-3 text-center font-bold text-[#5F6B61]">{op.stepNumber}</td>
-                            <td className="p-3 font-semibold text-[#1C211D]">{op.operationName}</td>
-                            <td className="p-3">
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#F2EEE6] text-[#5F6B61]">
-                                {op.department}
-                              </span>
-                            </td>
-                            <td className="p-3 font-mono text-[#1C211D]">{op.machinery}</td>
-                            <td className="p-3 text-right font-bold text-[#3A5A40] font-mono">
-                              {op.standardMinutes.toFixed(1)} min
-                            </td>
-                            <td className="p-3 text-[#5F6B61] max-w-xs truncate" title={op.criticalNotes}>
-                              {op.criticalNotes || '-'}
-                            </td>
-                            <td className="p-3 text-center">
-                              <button
-                                onClick={() => handleDeleteOperation(op.id)}
-                                className="p-1 text-[#8F9990] hover:text-[#B33927] transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                        {(!selectedGarment.operationsRouting || selectedGarment.operationsRouting.length === 0) ? (
+                          <tr>
+                            <td colSpan={7} className="p-6 text-center text-[#5F6B61]">
+                              No hay operaciones registradas aún. Añada el flujo de corte y costura abajo.
                             </td>
                           </tr>
-                        ))}
+                        ) : (
+                          selectedGarment.operationsRouting.map((op) => (
+                            <tr key={op.id} className="hover:bg-[#FAF8F5]">
+                              <td className="p-3 text-center font-bold text-[#5F6B61]">{op.stepNumber}</td>
+                              <td className="p-3 font-semibold text-[#1C211D]">{op.operationName}</td>
+                              <td className="p-3">
+                                <span className="bg-[#F2EEE6] text-[#5F6B61] px-2 py-0.5 rounded text-[10px] font-medium">
+                                  {op.department}
+                                </span>
+                              </td>
+                              <td className="p-3 text-[#1C211D]">{op.machinery}</td>
+                              <td className="p-3 text-right font-mono font-bold text-[#3A5A40]">
+                                {op.standardMinutes} min
+                              </td>
+                              <td className="p-3 text-[#5F6B61] text-[11px]">
+                                {op.criticalNotes || '-'}
+                              </td>
+                              <td className="p-3 text-center">
+                                <button
+                                  onClick={() => handleDeleteOperation(op.id)}
+                                  className="p-1 text-[#8F9990] hover:text-[#B33927] rounded transition-colors"
+                                  title="Eliminar operación"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>
 
                   {/* Add Operation Form */}
-                  <div className="p-3.5 sm:p-4 bg-[#FAF8F5] border-t border-[#E6E1D8] space-y-2.5">
-                    <span className="font-bold text-xs text-[#1C211D] block">
-                      Agregar Operación a la Ruta de Confección:
+                  <div className="p-3.5 sm:p-4 bg-[#FAF8F5] border-t border-[#E6E1D8] space-y-2">
+                    <span className="text-xs font-bold text-[#1C211D] block">
+                      Añadir Operación a la Ruta de Confección:
                     </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-6 gap-2">
                       <input
                         type="text"
-                        placeholder="Nombre Operación (ej. Pegar Cuello)"
+                        placeholder="Nombre de la operación (ej: Pegar pechera)"
                         value={newOpName}
                         onChange={(e) => setNewOpName(e.target.value)}
-                        className="bg-white border border-[#D5CEC2] rounded-lg px-2.5 py-1.5 sm:col-span-2 text-[#1C211D]"
+                        className="p-2 bg-white border border-[#D5CEC2] rounded-lg text-xs sm:col-span-2 text-[#1C211D]"
                       />
+
                       <select
                         value={newOpDept}
-                        onChange={(e: any) => setNewOpDept(e.target.value)}
-                        className="bg-white border border-[#D5CEC2] rounded-lg px-2 py-1.5 text-[#1C211D]"
+                        onChange={(e) => setNewOpDept(e.target.value as any)}
+                        className="p-2 bg-white border border-[#D5CEC2] rounded-lg text-xs text-[#1C211D]"
                       >
                         <option value="Corte">Corte</option>
                         <option value="Preparación">Preparación</option>
                         <option value="Ensamble">Ensamble</option>
                         <option value="Terminación">Terminación</option>
-                        <option value="Control de Calidad">Calidad</option>
+                        <option value="Control de Calidad">Control de Calidad</option>
                       </select>
+
                       <input
                         type="text"
-                        placeholder="Máquina (ej. Fileteadora)"
+                        placeholder="Maquinaria (ej: Fileteadora)"
                         value={newOpMachinery}
                         onChange={(e) => setNewOpMachinery(e.target.value)}
-                        className="bg-white border border-[#D5CEC2] rounded-lg px-2 py-1.5 text-[#1C211D]"
+                        className="p-2 bg-white border border-[#D5CEC2] rounded-lg text-xs text-[#1C211D]"
                       />
+
                       <input
                         type="number"
                         step="0.1"
                         min="0.1"
-                        placeholder="SAM min"
-                        value={newOpSAM || ''}
+                        placeholder="SAM (min)"
+                        value={newOpSAM}
                         onChange={(e) => setNewOpSAM(parseFloat(e.target.value) || 0)}
-                        className="bg-white border border-[#D5CEC2] rounded-lg px-2 py-1.5 text-right font-bold text-[#1C211D]"
+                        className="p-2 bg-white border border-[#D5CEC2] rounded-lg text-xs font-bold text-[#1C211D]"
                       />
+
                       <button
                         type="button"
                         onClick={handleAddOperation}
                         disabled={!newOpName}
-                        className="px-3 py-1.5 bg-[#3A5A40] hover:bg-[#2D4632] disabled:opacity-50 text-white rounded-lg font-bold transition-colors shadow-2xs active:scale-95"
+                        className="p-2 bg-[#3A5A40] hover:bg-[#2D4632] disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs"
                       >
-                        + Agregar
+                        + Añadir Operación
                       </button>
                     </div>
                   </div>
@@ -977,305 +1225,213 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
               </div>
             )}
 
-            {/* TAB 3: CALIDAD & QC */}
+            {/* TAB 3: CALIDAD & QC CHECKPOINTS */}
             {activeSubTab === 'calidad' && (
-              <div className="space-y-4">
-                <div className="bg-white rounded-xl border border-[#E6E1D8] shadow-xs overflow-hidden">
-                  <div className="p-3.5 sm:p-4 border-b border-[#E6E1D8] flex items-center justify-between bg-[#FCFBF9]">
-                    <div>
-                      <h3 className="font-bold text-xs sm:text-sm text-[#1C211D]">
-                        Puntos Críticos de Control de Calidad (QC)
-                      </h3>
-                      <p className="text-[11px] text-[#5F6B61]">
-                        Parámetros de tolerancia, defectos potenciales y severidad según norma técnica
-                      </p>
-                    </div>
-                    <span className="text-xs font-mono font-bold bg-[#F2EEE6] text-[#5F6B61] px-2 py-0.5 rounded-lg">
-                      {selectedGarment.qualityCheckpoints?.length || 0} Checkpoints
-                    </span>
-                  </div>
-
-                  <div className="p-3.5 sm:p-4 space-y-2.5">
-                    {(!selectedGarment.qualityCheckpoints || selectedGarment.qualityCheckpoints.length === 0) ? (
-                      <p className="text-xs text-[#8F9990] text-center py-4">No hay puntos de calidad registrados.</p>
-                    ) : (
-                      selectedGarment.qualityCheckpoints.map((qc) => (
-                        <div
-                          key={qc.id}
-                          className="p-3 rounded-lg border border-[#E6E1D8] bg-[#FAF8F5] flex items-start justify-between gap-3"
-                        >
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#F2EEE6] text-[#5F6B61]">
-                                {qc.stage}
-                              </span>
-                              <span className="font-bold text-xs text-[#1C211D]">{qc.parameter}</span>
-                            </div>
-                            <div className="text-xs text-[#5F6B61]">
-                              Tolerancia: <strong className="text-[#1C211D]">{qc.tolerance}</strong>
-                              {qc.potentialDefect && <span> • Defecto: <strong className="text-[#B33927]">{qc.potentialDefect}</strong></span>}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                                qc.severity === 'Crítico'
-                                  ? 'bg-[#FDF2F0] text-[#B33927] border border-[#F0D5D0]'
-                                  : qc.severity === 'Mayor'
-                                  ? 'bg-[#FDF8EE] text-[#82530C] border border-[#F7E4BF]'
-                                  : 'bg-[#EBF2EC] text-[#233829] border border-[#D4E3D7]'
-                              }`}
-                            >
-                              {qc.severity}
-                            </span>
-                            <button
-                              onClick={() => handleDeleteQC(qc.id)}
-                              className="p-1 text-[#8F9990] hover:text-[#B33927]"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  {/* Add QC Form */}
-                  <div className="p-3.5 sm:p-4 bg-[#FAF8F5] border-t border-[#E6E1D8] space-y-2.5">
-                    <span className="font-bold text-xs text-[#1C211D] block">
-                      Agregar Checkpoint de Calidad:
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs">
-                      <select
-                        value={newQCStage}
-                        onChange={(e: any) => setNewQCStage(e.target.value)}
-                        className="bg-white border border-[#D5CEC2] rounded-lg px-2 py-1.5 text-[#1C211D]"
-                      >
-                        <option value="Corte">Corte</option>
-                        <option value="Costura">Costura</option>
-                        <option value="Plancha">Plancha</option>
-                        <option value="Empaque Final">Empaque Final</option>
-                      </select>
-                      <input
-                        type="text"
-                        placeholder="Parámetro (ej. Ancho Pecho)"
-                        value={newQCParam}
-                        onChange={(e) => setNewQCParam(e.target.value)}
-                        className="bg-white border border-[#D5CEC2] rounded-lg px-2.5 py-1.5 text-[#1C211D]"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Tolerancia (ej. ± 0.5 cm)"
-                        value={newQCTol}
-                        onChange={(e) => setNewQCTol(e.target.value)}
-                        className="bg-white border border-[#D5CEC2] rounded-lg px-2.5 py-1.5 text-[#1C211D]"
-                      />
-                      <select
-                        value={newQCSeverity}
-                        onChange={(e: any) => setNewQCSeverity(e.target.value)}
-                        className="bg-white border border-[#D5CEC2] rounded-lg px-2 py-1.5 text-[#1C211D]"
-                      >
-                        <option value="Menor">Menor</option>
-                        <option value="Mayor">Mayor</option>
-                        <option value="Crítico">Crítico</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={handleAddQualityCheckpoint}
-                        disabled={!newQCParam}
-                        className="px-3 py-1.5 bg-[#3A5A40] hover:bg-[#2D4632] disabled:opacity-50 text-white rounded-lg font-bold transition-colors shadow-2xs active:scale-95"
-                      >
-                        + Agregar QC
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 4: COSTEO: TALLER VS MAQUILA */}
-            {activeSubTab === 'costeo' && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Internal Workshop Card */}
-                  <div className="bg-white p-4 sm:p-5 rounded-xl border border-[#E6E1D8] shadow-xs space-y-3">
-                    <div className="flex items-center justify-between border-b border-[#E6E1D8] pb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-[#EBF2EC] text-[#3A5A40] rounded-lg">
-                          <Factory className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-sm text-[#1C211D]">Taller Propio Interno</h4>
-                          <p className="text-[11px] text-[#5F6B61]">Costeo estándar por minuto MOD & CIF</p>
-                        </div>
-                      </div>
-                      <span className="px-2 py-0.5 bg-[#EBF2EC] text-[#233829] text-[10px] font-bold rounded">
-                        Control
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between py-1 border-b border-[#F2EEE6]">
-                        <span className="text-[#5F6B61]">1. Materias Primas BOM:</span>
-                        <span className="font-bold text-[#1C211D]">{formatCOP(rawMaterialCost)}</span>
-                      </div>
-
-                      <div className="flex items-center justify-between py-1 border-b border-[#F2EEE6]">
-                        <span className="text-[#5F6B61]">Tarifa Minuto MOD:</span>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            step="10"
-                            min="50"
-                            value={simLaborRate}
-                            onChange={(e) => setSimLaborRate(parseFloat(e.target.value) || 0)}
-                            className="w-20 px-2 py-0.5 border border-[#D5CEC2] rounded text-right font-bold text-xs"
-                          />
-                          <span className="text-[#8F9990] text-[10px]">COP/min</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between py-1 border-b border-[#F2EEE6]">
-                        <span className="text-[#5F6B61]">Tarifa Minuto CIF:</span>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            step="5"
-                            min="10"
-                            value={simOverheadRate}
-                            onChange={(e) => setSimOverheadRate(parseFloat(e.target.value) || 0)}
-                            className="w-20 px-2 py-0.5 border border-[#D5CEC2] rounded text-right font-bold text-xs"
-                          />
-                          <span className="text-[#8F9990] text-[10px]">COP/min</span>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-between py-1 border-b border-[#F2EEE6]">
-                        <span className="text-[#5F6B61]">2. Mano de Obra Directa ({activeTotalMfgMin} min):</span>
-                        <span className="font-bold text-[#1C211D]">{formatCOP(liveInternalMOD)}</span>
-                      </div>
-
-                      <div className="flex justify-between py-1 border-b border-[#F2EEE6]">
-                        <span className="text-[#5F6B61]">3. Costos Indirectos CIF ({activeTotalMfgMin} min):</span>
-                        <span className="font-bold text-[#1C211D]">{formatCOP(liveInternalCIF)}</span>
-                      </div>
-
-                      <div className="pt-2 flex justify-between items-center text-sm font-bold bg-[#FAF8F5] p-3 rounded-lg border border-[#EAE6DF]">
-                        <span className="text-[#1C211D]">Costo Unitario Interno:</span>
-                        <span className="text-[#3A5A40] text-base">{formatCOP(liveTotalInternal)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* External Maquila Card */}
-                  <div className="bg-white p-4 sm:p-5 rounded-xl border border-[#E6E1D8] shadow-xs space-y-3">
-                    <div className="flex items-center justify-between border-b border-[#E6E1D8] pb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-[#FAF8F5] text-[#1C211D] rounded-lg">
-                          <TrendingUp className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-sm text-[#1C211D]">Maquila / Taller Satélite</h4>
-                          <p className="text-[11px] text-[#5F6B61]">Servicio tercerizado por prenda</p>
-                        </div>
-                      </div>
-                      <span className="px-2 py-0.5 bg-[#FAF8F5] text-[#5F6B61] text-[10px] font-bold rounded">
-                        Flexibilidad
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between py-1 border-b border-[#F2EEE6]">
-                        <span className="text-[#5F6B61]">1. Materias Primas BOM:</span>
-                        <span className="font-bold text-[#1C211D]">{formatCOP(rawMaterialCost)}</span>
-                      </div>
-
-                      <div className="flex items-center justify-between py-1 border-b border-[#F2EEE6]">
-                        <span className="text-[#5F6B61]">Tarifa Corte Satélite:</span>
-                        <input
-                          type="number"
-                          step="100"
-                          value={simMaquilaCut}
-                          onChange={(e) => setSimMaquilaCut(parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-0.5 border border-[#D5CEC2] rounded text-right font-bold text-xs"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between py-1 border-b border-[#F2EEE6]">
-                        <span className="text-[#5F6B61]">Tarifa Confección Satélite:</span>
-                        <input
-                          type="number"
-                          step="200"
-                          value={simMaquilaSew}
-                          onChange={(e) => setSimMaquilaSew(parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-0.5 border border-[#D5CEC2] rounded text-right font-bold text-xs"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between py-1 border-b border-[#F2EEE6]">
-                        <span className="text-[#5F6B61]">Tarifa Acabados & Plancha:</span>
-                        <input
-                          type="number"
-                          step="100"
-                          value={simMaquilaFinish}
-                          onChange={(e) => setSimMaquilaFinish(parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-0.5 border border-[#D5CEC2] rounded text-right font-bold text-xs"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between py-1 border-b border-[#F2EEE6]">
-                        <span className="text-[#5F6B61]">Fletes y Logística:</span>
-                        <input
-                          type="number"
-                          step="50"
-                          value={simMaquilaLogistics}
-                          onChange={(e) => setSimMaquilaLogistics(parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-0.5 border border-[#D5CEC2] rounded text-right font-bold text-xs"
-                        />
-                      </div>
-
-                      <div className="pt-2 flex justify-between items-center text-sm font-bold bg-[#FAF8F5] p-3 rounded-lg border border-[#EAE6DF]">
-                        <span className="text-[#1C211D]">Costo Unitario Maquila:</span>
-                        <span className="text-[#3A5A40] text-base">{formatCOP(liveTotalMaquila)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Comparative Impact Card */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-[#E6E1D8] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-[#5F6B61]">
-                        Comparativa Económica
-                      </span>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded font-bold ${
-                          internalSavingsPerUnit >= 0
-                            ? 'bg-[#EBF2EC] text-[#233829]'
-                            : 'bg-[#FDF8EE] text-[#82530C]'
-                        }`}
-                      >
-                        {internalSavingsPerUnit >= 0
-                          ? `Ahorro Taller Propio: ${formatCOP(internalSavingsPerUnit)} / u`
-                          : `Ahorro Maquila: ${formatCOP(Math.abs(internalSavingsPerUnit))} / u`}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#5F6B61]">
-                      Para el lote meta de <strong>{selectedGarment.targetSales.toLocaleString()} unidades</strong>, producir
-                      en taller interno representa un impacto de{' '}
-                      <strong className="text-[#1C211D]">{formatCOP(batchSavings)}</strong> frente a maquila.
+              <div className="bg-white rounded-xl border border-[#E6E1D8] shadow-xs overflow-hidden">
+                <div className="p-3.5 sm:p-4 border-b border-[#E6E1D8] flex items-center justify-between bg-[#FCFBF9]">
+                  <div>
+                    <h3 className="font-bold text-xs sm:text-sm text-[#1C211D]">
+                      Puntos de Inspección & Control de Calidad (QC)
+                    </h3>
+                    <p className="text-[11px] text-[#5F6B61]">
+                      Tolerancias críticas y criterios de no-conformidad
                     </p>
                   </div>
+                  <span className="text-xs font-mono font-bold bg-[#F2EEE6] text-[#5F6B61] px-2 py-0.5 rounded-lg">
+                    {selectedGarment.qualityCheckpoints?.length || 0} Puntos QC
+                  </span>
+                </div>
 
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead className="bg-[#FAF8F5] text-[10px] font-bold uppercase text-[#5F6B61] border-b border-[#E6E1D8]">
+                      <tr>
+                        <th className="p-3">Etapa</th>
+                        <th className="p-3">Parámetro de Medida</th>
+                        <th className="p-3">Tolerancia Aceptable</th>
+                        <th className="p-3">Defecto Potencial</th>
+                        <th className="p-3 text-center">Severidad</th>
+                        <th className="p-3 text-center">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F2EEE6]">
+                      {(!selectedGarment.qualityCheckpoints || selectedGarment.qualityCheckpoints.length === 0) ? (
+                        <tr>
+                          <td colSpan={6} className="p-6 text-center text-[#5F6B61]">
+                            No hay puntos de control de calidad registrados para esta prenda.
+                          </td>
+                        </tr>
+                      ) : (
+                        selectedGarment.qualityCheckpoints.map((qc) => (
+                          <tr key={qc.id} className="hover:bg-[#FAF8F5]">
+                            <td className="p-3 font-semibold text-[#1C211D]">{qc.stage || 'General'}</td>
+                            <td className="p-3 text-[#1C211D]">{qc.parameter}</td>
+                            <td className="p-3 font-mono text-[#5F6B61]">{qc.tolerance}</td>
+                            <td className="p-3 text-[#B33927] font-medium">{qc.potentialDefect}</td>
+                            <td className="p-3 text-center">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  qc.severity === 'Crítico'
+                                    ? 'bg-rose-100 text-rose-800'
+                                    : qc.severity === 'Mayor'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : 'bg-slate-100 text-slate-700'
+                                }`}
+                              >
+                                {qc.severity}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <button
+                                onClick={() => handleDeleteQC(qc.id)}
+                                className="p-1 text-[#8F9990] hover:text-[#B33927] rounded transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Add QC Form */}
+                <div className="p-3.5 sm:p-4 bg-[#FAF8F5] border-t border-[#E6E1D8] space-y-2">
+                  <span className="text-xs font-bold text-[#1C211D] block">
+                    Registrar Nuevo Punto de Control QC:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-6 gap-2">
+                    <select
+                      value={newQCStage}
+                      onChange={(e) => setNewQCStage(e.target.value as any)}
+                      className="p-2 bg-white border border-[#D5CEC2] rounded-lg text-xs text-[#1C211D]"
+                    >
+                      <option value="Corte">Corte</option>
+                      <option value="Costura">Costura</option>
+                      <option value="Plancha">Plancha</option>
+                      <option value="Empaque Final">Empaque Final</option>
+                    </select>
+
+                    <input
+                      type="text"
+                      placeholder="Parámetro (ej: Ancho de cuello)"
+                      value={newQCParam}
+                      onChange={(e) => setNewQCParam(e.target.value)}
+                      className="p-2 bg-white border border-[#D5CEC2] rounded-lg text-xs sm:col-span-2 text-[#1C211D]"
+                    />
+
+                    <input
+                      type="text"
+                      placeholder="Tolerancia (ej: ± 0.5 cm)"
+                      value={newQCTol}
+                      onChange={(e) => setNewQCTol(e.target.value)}
+                      className="p-2 bg-white border border-[#D5CEC2] rounded-lg text-xs text-[#1C211D]"
+                    />
+
+                    <select
+                      value={newQCSeverity}
+                      onChange={(e) => setNewQCSeverity(e.target.value as any)}
+                      className="p-2 bg-white border border-[#D5CEC2] rounded-lg text-xs text-[#1C211D]"
+                    >
+                      <option value="Menor">Menor</option>
+                      <option value="Mayor">Mayor</option>
+                      <option value="Crítico">Crítico</option>
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={handleAddQualityCheckpoint}
+                      disabled={!newQCParam}
+                      className="p-2 bg-[#3A5A40] hover:bg-[#2D4632] disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs"
+                    >
+                      + Añadir QC
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: COSTEO INTEGRAL & SIMULACIÓN TALLER PROPIO VS MAQUILA */}
+            {activeSubTab === 'costeo' && (
+              <div className="bg-white rounded-xl border border-[#E6E1D8] shadow-xs p-4 sm:p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E6E1D8] pb-4">
+                  <div>
+                    <h3 className="font-bold text-sm text-[#1C211D]">
+                      Costeo Integral de Confección: Planta Propia vs Maquila Satélite
+                    </h3>
+                    <p className="text-xs text-[#5F6B61]">
+                      Simulación económica y análisis de ahorro por unidad y lote
+                    </p>
+                  </div>
                   <button
-                    type="button"
                     onClick={handleSaveCosting}
-                    className="w-full sm:w-auto px-4 py-2.5 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg text-xs font-bold transition-colors shadow-2xs shrink-0 flex items-center justify-center gap-1.5 active:scale-95"
+                    className="px-4 py-2 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg text-xs font-bold shadow-xs transition-all active:scale-95"
                   >
-                    <CheckCircle className="w-4 h-4" />
-                    Guardar Tarifas
+                    Guardar Estructura Costos
                   </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Planta Propia */}
+                  <div className="p-4 rounded-xl border border-[#D4E3D7] bg-[#EBF2EC]/30 space-y-3">
+                    <h4 className="font-bold text-xs text-[#233829] uppercase tracking-wider flex items-center gap-1.5">
+                      <Factory className="w-4 h-4 text-[#3A5A40]" />
+                      Producción en Taller Propio
+                    </h4>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between py-1 border-b border-[#EAE6DF]">
+                        <span className="text-[#5F6B61]">Materia Prima (Telas + Avíos):</span>
+                        <span className="font-bold text-[#1C211D] font-mono">{formatCOP(rawMaterialCost)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-[#EAE6DF]">
+                        <span className="text-[#5F6B61]">Mano de Obra Directa (MOD):</span>
+                        <span className="font-bold text-[#1C211D] font-mono">{formatCOP(liveInternalMOD)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-[#EAE6DF]">
+                        <span className="text-[#5F6B61]">Costos Indirectos Fabril (CIF):</span>
+                        <span className="font-bold text-[#1C211D] font-mono">{formatCOP(liveInternalCIF)}</span>
+                      </div>
+                      <div className="flex justify-between pt-2 text-sm font-bold text-[#233829]">
+                        <span>Costo Unitario Total Propio:</span>
+                        <span className="font-mono">{formatCOP(liveTotalInternal)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Maquila Externa */}
+                  <div className="p-4 rounded-xl border border-[#E6E1D8] bg-[#FAF8F5] space-y-3">
+                    <h4 className="font-bold text-xs text-[#1C211D] uppercase tracking-wider flex items-center gap-1.5">
+                      <TrendingUp className="w-4 h-4 text-[#8F9990]" />
+                      Producción en Satélite / Maquila Externa
+                    </h4>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between py-1 border-b border-[#EAE6DF]">
+                        <span className="text-[#5F6B61]">Materia Prima (Telas + Avíos):</span>
+                        <span className="font-bold text-[#1C211D] font-mono">{formatCOP(rawMaterialCost)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-[#EAE6DF]">
+                        <span className="text-[#5F6B61]">Corte Satélite:</span>
+                        <span className="font-bold text-[#1C211D] font-mono">{formatCOP(simMaquilaCut)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-[#EAE6DF]">
+                        <span className="text-[#5F6B61]">Confección Satélite:</span>
+                        <span className="font-bold text-[#1C211D] font-mono">{formatCOP(simMaquilaSew)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-[#EAE6DF]">
+                        <span className="text-[#5F6B61]">Acabados & Fletes:</span>
+                        <span className="font-bold text-[#1C211D] font-mono">
+                          {formatCOP(simMaquilaFinish + simMaquilaLogistics)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pt-2 text-sm font-bold text-[#1C211D]">
+                        <span>Costo Unitario Maquila:</span>
+                        <span className="font-mono">{formatCOP(liveTotalMaquila)}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

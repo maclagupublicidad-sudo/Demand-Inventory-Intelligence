@@ -1,6 +1,14 @@
-export type MaterialCategory = 'Tela' | 'Avío / Fornitura' | 'Hilo' | 'Empaque / Etiqueta' | 'Entretela';
+export type MaterialCategory =
+  | 'Tela'
+  | 'Avío / Fornitura'
+  | 'Hilo'
+  | 'Empaque / Etiqueta'
+  | 'Entretela'
+  | 'Botón / Broche'
+  | 'Cremallera'
+  | 'Otro';
 
-export type MaterialUnit = 'm' | 'kg' | 'unidades' | 'yardas' | 'conos' | 'gruesas' | 'docenas';
+export type MaterialUnit = 'm' | 'kg' | 'unidades' | 'yardas' | 'conos' | 'gruesas' | 'docenas' | 'rollos' | 'paquetes';
 
 export interface RawMaterial {
   id: string;
@@ -19,15 +27,17 @@ export interface RawMaterial {
   color?: string;
   widthMeters?: number; // Para telas (ej. 1.50m)
   weightGsm?: number; // Para telas gramos/m2
+  isActive?: boolean; // Estado activo / inactivo
 }
 
 export interface BOMItem {
   rawMaterialId: string;
   rawMaterialName: string;
   category: MaterialCategory;
-  quantityPerGarment: number; // Consumo unitario
+  quantityPerGarment: number; // Consumo unitario (ej: 0.85 kg de tela, 10 botones)
   unit: MaterialUnit;
   wastePercent: number; // Merma de corte específica para este componente (%)
+  notes?: string; // Observaciones del insumo (ej: "Ubicación: Cuello y pechera")
 }
 
 export interface ProductionTimes {
@@ -114,6 +124,9 @@ export interface Garment {
   qualityCheckpoints?: QualityCheckpoint[];
   costing?: ProductionCosting;
   techPackNotes?: string;
+  isActive?: boolean; // Estado activo / desactivado de la prenda
+  description?: string; // Descripción comercial o técnica
+  referenceCode?: string; // Código de colección o referencia
 }
 
 export type CycleDuration = '1_month' | '3_months' | '6_months' | '12_months' | 'custom';
