@@ -51,6 +51,8 @@ import { UserManagementModal } from './components/UserManagementModal';
 import { AccessRestricted } from './components/AccessRestricted';
 import { CompanyManagerModal } from './components/CompanyManagerModal';
 import { CompanyBenchmarkView } from './components/CompanyBenchmarkView';
+import { CompanyOnboardingView } from './components/CompanyOnboardingView';
+import { ButtonTourModal } from './components/ButtonTourModal';
 import {
   Layers,
   Package,
@@ -65,6 +67,15 @@ import {
 } from 'lucide-react';
 
 export default function App() {
+  // Onboarding / First Time Setup State (starts true if not yet completed so company can be registered cleanly)
+  const [isOnboarding, setIsOnboarding] = useState<boolean>(() => {
+    const onboarded = localStorage.getItem('textiliq_onboarding_completed');
+    if (onboarded === 'true') return false;
+    return true;
+  });
+
+  const [isButtonTourOpen, setIsButtonTourOpen] = useState<boolean>(false);
+
   // Multi-Tenancy Companies Management
   const [companies, setCompanies] = useState<CompanyTenant[]>(() => {
     const saved = localStorage.getItem('textiliq_companies');
@@ -559,6 +570,70 @@ export default function App() {
     }
   };
 
+  // Clean Company Registration (0 test data)
+  const handleRegisterCleanCompany = (newCompany: CompanyTenant, adminUser: AppUser) => {
+    const updatedCompanies = [newCompany];
+    setCompanies(updatedCompanies);
+    setActiveCompanyId(newCompany.id);
+    setGarments([]);
+    setRawMaterials([]);
+    setSalesRecords([]);
+    setCycleConfig(newCompany.cycleConfig);
+    setPurchaseOrders([]);
+    setProductionOrders([]);
+    setUsers([adminUser]);
+    setCurrentUser(adminUser);
+
+    localStorage.setItem('textiliq_companies', JSON.stringify(updatedCompanies));
+    localStorage.setItem('textiliq_active_company_id', newCompany.id);
+    localStorage.setItem('textiliq_garments', JSON.stringify([]));
+    localStorage.setItem('textiliq_materials', JSON.stringify([]));
+    localStorage.setItem('textiliq_sales', JSON.stringify([]));
+    localStorage.setItem('textiliq_cycle', JSON.stringify(newCompany.cycleConfig));
+    localStorage.setItem('textiliq_orders', JSON.stringify([]));
+    localStorage.setItem('textiliq_production_orders', JSON.stringify([]));
+    localStorage.setItem('textiliq_users', JSON.stringify([adminUser]));
+    localStorage.setItem('textiliq_current_user', JSON.stringify(adminUser));
+    localStorage.setItem('textiliq_onboarding_completed', 'true');
+
+    setIsOnboarding(false);
+  };
+
+  // Load Demo Mode with Preconfigured Sample Companies
+  const handleLoadDemoMode = () => {
+    const demo = DEMO_COMPANIES;
+    setCompanies(demo);
+    const first = demo[0];
+    setActiveCompanyId(first.id);
+    setGarments(first.garments || []);
+    setRawMaterials(first.rawMaterials || []);
+    setSalesRecords(first.salesRecords || []);
+    setCycleConfig(first.cycleConfig || initialCycleConfig);
+    setPurchaseOrders(first.purchaseOrders || []);
+    setProductionOrders(first.productionOrders || []);
+    if (first.users && first.users.length > 0) {
+      setUsers(first.users);
+      setCurrentUser(first.users[0]);
+    } else {
+      setUsers(INITIAL_USERS);
+      setCurrentUser(INITIAL_USERS[0]);
+    }
+
+    localStorage.setItem('textiliq_companies', JSON.stringify(demo));
+    localStorage.setItem('textiliq_active_company_id', first.id);
+    localStorage.setItem('textiliq_garments', JSON.stringify(first.garments || []));
+    localStorage.setItem('textiliq_materials', JSON.stringify(first.rawMaterials || []));
+    localStorage.setItem('textiliq_sales', JSON.stringify(first.salesRecords || []));
+    localStorage.setItem('textiliq_cycle', JSON.stringify(first.cycleConfig || initialCycleConfig));
+    localStorage.setItem('textiliq_orders', JSON.stringify(first.purchaseOrders || []));
+    localStorage.setItem('textiliq_production_orders', JSON.stringify(first.productionOrders || []));
+    localStorage.setItem('textiliq_users', JSON.stringify(first.users || INITIAL_USERS));
+    localStorage.setItem('textiliq_current_user', JSON.stringify((first.users && first.users[0]) || INITIAL_USERS[0]));
+    localStorage.setItem('textiliq_onboarding_completed', 'true');
+
+    setIsOnboarding(false);
+  };
+
   // Multi-tenant Company Management Handlers
   const handleSelectCompany = (newCompanyId: string) => {
     if (newCompanyId === activeCompanyId) return;
@@ -936,6 +1011,34 @@ export default function App() {
     setPurchaseOrders((prev) => prev.filter((po) => po.id !== orderId));
   };
 
+  // If user is in initial onboarding mode, render clean company onboarding screen
+  if (isOnboarding) {
+    return (
+      <>
+        <CompanyOnboardingView
+          onRegisterCleanCompany={handleRegisterCleanCompany}
+          onLoadDemoMode={handleLoadDemoMode}
+          onOpenButtonTour={() => setIsButtonTourOpen(true)}
+        />
+        <ButtonTourModal
+          isOpen={isButtonTourOpen}
+          onClose={() => setIsButtonTourOpen(false)}
+          onNavigateTab={(tab) => {
+            setIsOnboarding(false);
+            setActiveTab(tab);
+          }}
+          onOpenCycleModal={() => setIsCycleModalOpen(true)}
+          onOpenAIAdvisor={() => setIsAIAdvisorOpen(true)}
+          onOpenSimulator={() => setIsSimulatorOpen(true)}
+          onOpenPOModal={() => setIsPOModalOpen(true)}
+          onOpenCSVModal={() => setIsCSVModalOpen(true)}
+          onOpenCompanyManager={() => setIsCompanyManagerOpen(true)}
+          onOpenUserManagementModal={() => setIsUserManagementModalOpen(true)}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF8F5] flex flex-col font-sans text-[#1C211D] selection:bg-[#3A5A40] selection:text-white">
       {/* Top Main Navigation Header */}
@@ -955,6 +1058,8 @@ export default function App() {
         onOpenPOModal={() => setIsPOModalOpen(true)}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onOpenUserManagementModal={() => setIsUserManagementModalOpen(true)}
+        onOpenButtonTour={() => setIsButtonTourOpen(true)}
+        onStartCleanOnboarding={() => setIsOnboarding(true)}
         criticalCount={mrpSummary.criticalItemsCount}
         onResetDemoData={handleResetDemoData}
       />
@@ -1272,6 +1377,21 @@ export default function App() {
         rawMaterials={rawMaterials}
         onSaveGarment={handleSaveGarment}
         garmentToEdit={editingGarment}
+      />
+
+      <ButtonTourModal
+        isOpen={isButtonTourOpen}
+        onClose={() => setIsButtonTourOpen(false)}
+        onNavigateTab={(tab) => {
+          setActiveTab(tab);
+        }}
+        onOpenCycleModal={() => setIsCycleModalOpen(true)}
+        onOpenAIAdvisor={() => setIsAIAdvisorOpen(true)}
+        onOpenSimulator={() => setIsSimulatorOpen(true)}
+        onOpenPOModal={() => setIsPOModalOpen(true)}
+        onOpenCSVModal={() => setIsCSVModalOpen(true)}
+        onOpenCompanyManager={() => setIsCompanyManagerOpen(true)}
+        onOpenUserManagementModal={() => setIsUserManagementModalOpen(true)}
       />
     </div>
   );

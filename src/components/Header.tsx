@@ -24,6 +24,7 @@ import {
   Plus,
   ArrowRight,
   Database,
+  HelpCircle,
 } from 'lucide-react';
 import { ProductionCycleConfig, AppUser, CompanyTenant } from '../types';
 import { ROLE_LABELS, hasPermission } from '../utils/permissions';
@@ -45,6 +46,8 @@ interface HeaderProps {
   onOpenPOModal: () => void;
   onOpenLoginModal: () => void;
   onOpenUserManagementModal: () => void;
+  onOpenButtonTour?: () => void;
+  onStartCleanOnboarding?: () => void;
   criticalCount: number;
   onResetDemoData: () => void;
 }
@@ -65,6 +68,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPOModal,
   onOpenLoginModal,
   onOpenUserManagementModal,
+  onOpenButtonTour,
+  onStartCleanOnboarding,
   criticalCount,
   onResetDemoData,
 }) => {
@@ -200,6 +205,25 @@ export const Header: React.FC<HeaderProps> = ({
                       <button
                         onClick={() => {
                           setIsCompanyMenuOpen(false);
+                          if (onStartCleanOnboarding) {
+                            onStartCleanOnboarding();
+                          } else {
+                            onOpenCompanyManager();
+                          }
+                        }}
+                        className="w-full text-left px-2.5 py-2 rounded-xl bg-[#EBF3ED] hover:bg-[#DCEADF] text-[#2D4632] text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
+                        id="header-register-new-company-btn"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Plus className="w-3.5 h-3.5 text-[#3A5A40]" />
+                          Registrar Empresa (Modo Limpio)
+                        </span>
+                        <ArrowRight className="w-3.5 h-3.5 text-[#3A5A40]" />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsCompanyMenuOpen(false);
                           onOpenCompanyManager();
                         }}
                         className="w-full text-left px-2.5 py-2 rounded-xl bg-[#FAF8F5] hover:bg-[#EAE6DF] text-[#1C211D] text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
@@ -207,7 +231,7 @@ export const Header: React.FC<HeaderProps> = ({
                       >
                         <span className="flex items-center gap-2">
                           <Building className="w-3.5 h-3.5 text-[#3A5A40]" />
-                          Administrar / Registrar Empresas
+                          Administrar / Sedes & Backup
                         </span>
                         <ArrowRight className="w-3.5 h-3.5 text-[#5F6B61]" />
                       </button>
@@ -251,6 +275,20 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Action Toolbar & User Session */}
           <div className="flex items-center space-x-1.5 sm:space-x-2">
+            {/* Interactive Button Tour & Guide */}
+            {onOpenButtonTour && (
+              <button
+                onClick={onOpenButtonTour}
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#EBF3ED] hover:bg-[#DCEADF] active:scale-95 text-[#2D4632] text-xs font-bold border border-[#D4E3D7] shadow-2xs transition-all touch-manipulation cursor-pointer"
+                id="header-button-tour-btn"
+                title="Ver guía interactiva y demostración de botones"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-[#3A5A40] shrink-0" />
+                <span className="hidden sm:inline">Demo Botones</span>
+                <span className="sm:hidden">Demo</span>
+              </button>
+            )}
+
             {/* AI Advisor Button */}
             <button
               onClick={onOpenAIAdvisor}
@@ -397,12 +435,40 @@ export const Header: React.FC<HeaderProps> = ({
 
                       {/* Menu Actions */}
                       <div className="space-y-1 text-xs">
+                        {onOpenButtonTour && (
+                          <button
+                            onClick={() => {
+                              setIsUserMenuOpen(false);
+                              onOpenButtonTour();
+                            }}
+                            className="w-full text-left px-3 py-2 rounded-xl bg-[#EBF3ED] hover:bg-[#DCEADF] text-[#2D4632] font-bold flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <HelpCircle className="w-4 h-4 text-[#3A5A40]" />
+                            Demo & Guía de Botones
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            if (onStartCleanOnboarding) {
+                              onStartCleanOnboarding();
+                            } else {
+                              onOpenCompanyManager();
+                            }
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#FAF8F5] text-[#1C211D] font-bold flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4 text-[#3A5A40]" />
+                          Registrar Empresa (Modo Limpio)
+                        </button>
+
                         <button
                           onClick={() => {
                             setIsUserMenuOpen(false);
                             onOpenCompanyManager();
                           }}
-                          className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#FAF8F5] text-[#1C211D] font-bold flex items-center gap-2.5 transition-colors cursor-pointer"
+                          className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#FAF8F5] text-[#1C211D] font-semibold flex items-center gap-2.5 transition-colors cursor-pointer"
                         >
                           <Building className="w-4 h-4 text-[#3A5A40]" />
                           Gestión de Empresas & Sedes
