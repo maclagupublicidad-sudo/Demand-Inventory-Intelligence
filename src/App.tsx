@@ -59,6 +59,7 @@ import {
   ShoppingCart,
   Download,
 } from 'lucide-react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 export default function App() {
   // User & RBAC State
@@ -1046,6 +1047,8 @@ export default function App() {
         onSaveGarment={handleSaveGarment}
         garmentToEdit={editingGarment}
       />
+
+      <SpeedInsights />
     </div>
   );
 }
