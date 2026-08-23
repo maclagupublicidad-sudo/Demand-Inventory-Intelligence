@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import {
   initialRawMaterials,
   initialGarments,
@@ -1046,6 +1047,8 @@ export default function App() {
         onSaveGarment={handleSaveGarment}
         garmentToEdit={editingGarment}
       />
+
+      <Analytics />
     </div>
   );
 }
