@@ -12,6 +12,7 @@ import {
   Minus,
   Layers,
   Scissors,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   SEASONS_CONFIG,
@@ -29,6 +30,7 @@ interface DemandForecastingViewProps {
   onUpdateCycleConfig: (updated: Partial<ProductionCycleConfig>) => void;
   onRecalculateAllTargets?: () => void;
   onOpenCycleModal?: () => void;
+  onOpenCSVModal?: () => void;
 }
 
 export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
@@ -40,6 +42,7 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
   onUpdateCycleConfig,
   onRecalculateAllTargets,
   onOpenCycleModal,
+  onOpenCSVModal,
 }) => {
   const [editedTargets, setEditedTargets] = useState<Record<string, number>>({});
   const [hasChanges, setHasChanges] = useState<boolean>(false);
@@ -130,6 +133,18 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
               <RefreshCw className="w-3.5 h-3.5 text-[#3A5A40]" />
               <span>Sincronizar con {seasonInfo.name.split(' ')[0]}</span>
             </button>
+
+            {onOpenCSVModal && (
+              <button
+                onClick={onOpenCSVModal}
+                className="px-3 py-2 bg-white border border-[#D5CEC2] hover:bg-[#FAF8F5] text-[#1C211D] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs active:scale-95 touch-manipulation cursor-pointer"
+                title="Cargar y validar histórico de ventas en formato CSV"
+                id="btn-demand-import-sales-csv"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-[#3A5A40]" />
+                <span>Cargar Ventas CSV</span>
+              </button>
+            )}
 
             {onOpenCycleModal && (
               <button

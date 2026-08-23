@@ -874,6 +874,7 @@ export default function App() {
               onDeleteGarment={handleDeleteGarment}
               onOpenNewGarmentModal={handleOpenNewGarmentModal}
               onOpenEditGarmentModal={handleOpenEditGarmentModal}
+              onOpenCSVModal={() => setIsCSVModalOpen(true)}
             />
           )
         )}
@@ -898,6 +899,7 @@ export default function App() {
               onUpdateCycleConfig={handleUpdateCycleConfig}
               onRecalculateAllTargets={handleRecalculateAllTargets}
               onOpenCycleModal={() => setIsCycleModalOpen(true)}
+              onOpenCSVModal={() => setIsCSVModalOpen(true)}
             />
           )
         )}

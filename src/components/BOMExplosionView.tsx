@@ -34,6 +34,7 @@ import {
   Sparkles,
   Tag,
   AlertTriangle,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { formatCOP } from '../utils/formatters';
 import { exportGarmentTechPackPDF } from '../services/pdfExporter';
@@ -50,6 +51,7 @@ interface BOMExplosionViewProps {
   onUpdateGarmentOperations?: (garmentId: string, updatedOperations: OperationRouting[]) => void;
   onUpdateGarmentQuality?: (garmentId: string, updatedQC: QualityCheckpoint[]) => void;
   onUpdateGarmentCosting?: (garmentId: string, updatedCosting: GarmentCosting) => void;
+  onOpenCSVModal?: () => void;
 }
 
 export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
@@ -64,6 +66,7 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
   onUpdateGarmentOperations,
   onUpdateGarmentQuality,
   onUpdateGarmentCosting,
+  onOpenCSVModal,
 }) => {
   const [selectedGarmentId, setSelectedGarmentId] = useState<string>(garments[0]?.id || '');
   const [activeSubTab, setActiveSubTab] = useState<'bom' | 'tiempos' | 'calidad' | 'costeo'>('bom');
@@ -361,6 +364,16 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          {onOpenCSVModal && (
+            <button
+              onClick={onOpenCSVModal}
+              className="px-4 py-2.5 bg-white border border-[#D5CEC2] hover:bg-[#FAF8F5] text-[#1C211D] rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+              id="btn-empty-import-bom-csv"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-[#3A5A40]" />
+              Importar Fichas Técnicas CSV
+            </button>
+          )}
           {onOpenNewGarmentModal && (
             <button
               onClick={onOpenNewGarmentModal}
@@ -429,16 +442,28 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
               <h3 className="font-bold text-sm text-[#1C211D]">Catálogo de Prendas</h3>
               <p className="text-[11px] text-[#5F6B61]">Gestión & Fichas Técnicas</p>
             </div>
-            {onOpenNewGarmentModal && (
-              <button
-                onClick={onOpenNewGarmentModal}
-                className="px-2.5 py-1.5 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-colors active:scale-95 cursor-pointer"
-                id="btn-add-new-garment"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Nueva Prenda</span>
-              </button>
-            )}
+            <div className="flex items-center gap-1.5">
+              {onOpenCSVModal && (
+                <button
+                  onClick={onOpenCSVModal}
+                  className="p-1.5 bg-white hover:bg-[#FAF8F5] text-[#1C211D] border border-[#D5CEC2] rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                  title="Importar catálogo y fichas técnicas CSV"
+                  id="btn-import-bom-csv"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-[#3A5A40]" />
+                </button>
+              )}
+              {onOpenNewGarmentModal && (
+                <button
+                  onClick={onOpenNewGarmentModal}
+                  className="px-2.5 py-1.5 bg-[#3A5A40] hover:bg-[#2D4632] text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-colors active:scale-95 cursor-pointer"
+                  id="btn-add-new-garment"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Nueva</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Search & Category Filter */}
