@@ -19,6 +19,8 @@ import {
   RefreshCw,
   HelpCircle,
   Sparkles,
+  Edit3,
+  CheckCheck,
 } from 'lucide-react';
 import {
   downloadCSVTemplate,
@@ -82,7 +84,8 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [selectedIssueDetail, setSelectedIssueDetail] = useState<CSVValidationIssue | null>(null);
 
-  if (!isOpen) return null;
+  // Inline editing state for fixing rows directly in the review table
+  const [editingCell, setEditingCell] = useState<{ rowIndex: number; column: string; value: string } | null>(null);
 
   // Handler for reading and parsing uploaded CSV text files
   const processUploadedFile = (name: string, content: string) => {
@@ -175,6 +178,51 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
     handleFiles(e.dataTransfer.files);
   };
 
+  // Load realistic sample datasets with 1 click
+  const loadDemoData = (type: 'ventas' | 'materias_primas' | 'fichas_tecnicas') => {
+    if (type === 'ventas') {
+      const sampleSales = `Fecha_Venta,SKU_Prenda,Nombre_Prenda,Unidades_Vendidas,Canal,Ingreso_Total_COP
+2026-01-15,CAM-OXF-001,Camisa Oxford Manga Larga,180,Tienda Principal,$14400000
+2026-01-18,JEA-DEN-002,Jean Clásico Denim 14oz,220,E-Commerce,$26400000
+2026-01-22,POL-PIQ-003,Polo Piqué Algodón Premium,150,Mayoristas,$8250000
+2026-01-28,VES-LIN-004,Vestido Casual Lino Midi,95,Boutique Exclusiva,$11400000
+2026-02-05,CHA-BOM-005,Chaqueta Bomber Impermeable,80,Tienda Principal,$14400000
+2026-02-12,CAM-OXF-001,Camisa Oxford Manga Larga,210,E-Commerce,$16800000
+2026-02-20,JEA-DEN-002,Jean Clásico Denim 14oz,240,Tienda Principal,$28800000`;
+      processUploadedFile('Ventas_Reales_2026.csv', sampleSales);
+    } else if (type === 'materias_primas') {
+      const sampleMats = `SKU,Nombre,Categoria,Unidad,Stock_Actual,En_Transito,Stock_Seguridad_Dias,MOQ_Lote_Minimo,Lead_Time_Dias,Costo_Unitario_COP,Proveedor,Color,Ancho_Metros,Gramaje_GSM
+TEL-OXF-BLA,Tela Oxford 100% Algodón Blanco,Tela,m,350,150,15,100,7,18500,Lafayette S.A.,Blanco Óptico,1.50,140
+TEL-DEN-AZU,Denim Índigo Pesado 14oz,Tela,m,520,300,20,150,12,24000,Fabricato Textil,Azul Índigo,1.60,400
+TEL-PIQ-NAV,Tejido Piqué 24/1 Algodón/Poliéster,Tela,kg,180,80,15,50,5,32000,Hilazas de Colombia,Azul Marino,1.80,220
+TEL-LIN-BEI,Lino Rústico Pre-lavado,Tela,m,120,50,18,60,10,29000,Lafayette S.A.,Beige Natural,1.45,180
+TEL-TAS-NEG,Taslan Impermeable Recubierto,Tela,m,90,100,12,80,6,19800,Textiles Miraflores,Negro,1.50,130
+HIL-BLA-120,Hilo Poliéster 120 TKT Blanco,Hilo,conos,45,20,10,10,3,6800,Coats Cadena,Blanco,0,0
+HIL-AZU-120,Hilo Poliéster 120 TKT Azul Marino,Hilo,conos,38,15,10,10,3,6800,Coats Cadena,Azul Marino,0,0
+BOT-NAC-18L,Botón Nácar 4 Huecos 18L,Botón / Broche,unidades,2500,1000,15,500,4,180,Pasacintas Colombia,Nácar Natural,0,0
+BOT-MET-JEAN,Botón Metálico Remache Jean 24L,Botón / Broche,unidades,1800,800,15,400,5,350,Cierres Andinos,Bronce Viejo,0,0
+REM-MET-JEAN,Remache de Cobre Bolsillo Jean,Avío / Fornitura,unidades,3200,1500,15,1000,4,90,Cierres Andinos,Cobre Satinado,0,0
+CRE-MET-15CM,Cremallera Metálica Cobre 15cm Jean,Cremallera,unidades,450,200,15,100,5,1850,YKK Colombia,Cobre / Índigo,0,0
+ETI-SAT-CON,Etiqueta Satín Instrucciones Cuidado,Empaque / Etiqueta,unidades,4200,2000,15,1000,4,120,Marquillas Gráficas,Blanco/Negro,0,0
+ENT-FUS-75G,Entretela Tejida Termofusible Cuello,Entretela,m,110,60,15,50,4,8200,Pasacintas Colombia,Blanco,0.90,75`;
+      processUploadedFile('Inventario_Materias_Primas_2026.csv', sampleMats);
+    } else if (type === 'fichas_tecnicas') {
+      const sampleBOM = `SKU_Prenda,Nombre_Prenda,SKU_Insumo,Nombre_Insumo,Cantidad_Por_Prenda,Merma_Corte_Porcentaje,Unidad,Costo_Unitario_COP,Proveedor,PVP_Venta_COP,SAM_Minutos
+CAM-OXF-001,Camisa Oxford Manga Larga,TEL-OXF-BLA,Tela Oxford 100% Algodón Blanco,1.65,6.0,m,18500,Lafayette S.A.,85000,24.5
+CAM-OXF-001,Camisa Oxford Manga Larga,HIL-BLA-120,Hilo Poliéster 120 TKT Blanco,0.02,3.0,conos,6800,Coats Cadena,85000,24.5
+CAM-OXF-001,Camisa Oxford Manga Larga,BOT-NAC-18L,Botón Nácar 4 Huecos 18L,8.0,2.0,unidades,180,Pasacintas Colombia,85000,24.5
+CAM-OXF-001,Camisa Oxford Manga Larga,ENT-FUS-75G,Entretela Tejida Termofusible Cuello,0.25,5.0,m,8200,Pasacintas Colombia,85000,24.5
+CAM-OXF-001,Camisa Oxford Manga Larga,ETI-SAT-CON,Etiqueta Satín Instrucciones Cuidado,1.0,1.0,unidades,120,Marquillas Gráficas,85000,24.5
+JEA-DEN-002,Jean Clásico Denim 14oz,TEL-DEN-AZU,Denim Índigo Pesado 14oz,1.40,7.0,m,24000,Fabricato Textil,120000,28.0
+JEA-DEN-002,Jean Clásico Denim 14oz,HIL-AZU-120,Hilo Poliéster 120 TKT Azul Marino,0.03,4.0,conos,6800,Coats Cadena,120000,28.0
+JEA-DEN-002,Jean Clásico Denim 14oz,CRE-MET-15CM,Cremallera Metálica Cobre 15cm Jean,1.0,1.0,unidades,1850,YKK Colombia,120000,28.0
+JEA-DEN-002,Jean Clásico Denim 14oz,BOT-MET-JEAN,Botón Metálico Remache Jean 24L,1.0,1.0,unidades,350,Cierres Andinos,120000,28.0
+JEA-DEN-002,Jean Clásico Denim 14oz,REM-MET-JEAN,Remache de Cobre Bolsillo Jean,6.0,2.0,unidades,90,Cierres Andinos,120000,28.0
+JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones Cuidado,1.0,1.0,unidades,120,Marquillas Gráficas,120000,28.0`;
+      processUploadedFile('Fichas_Tecnicas_BOM_2026.csv', sampleBOM);
+    }
+  };
+
   const hasAnyLoaded = !!salesResult || !!materialsResult || !!bomResult;
 
   // Compute total counts
@@ -205,82 +253,70 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
     return currentActiveResult.rawRows;
   }, [currentActiveResult, rowFilter]);
 
-  // Execute Final Import
+  // Execute confirmation
   const handleExecuteImport = () => {
-    let importedSales: SalesRecord[] = [];
-    let importedMaterials: RawMaterial[] = [];
-    let importedGarments: Garment[] = [];
-    let discoveredFromBOM: RawMaterial[] = [];
+    let importedAny = false;
 
-    if (salesResult) {
-      importedSales = skipInvalidRows
+    // 1. Sales
+    if (salesResult && salesResult.data.length > 0) {
+      const salesToImport = skipInvalidRows
         ? salesResult.data
-        : salesResult.errorCount === 0
-        ? salesResult.data
-        : [];
+        : salesResult.rawRows.filter((r) => r.isValid).map((r) => r.parsedItem!).filter(Boolean);
+      if (salesToImport.length > 0) {
+        onImportSales(salesToImport, importMode);
+        importedAny = true;
+      }
     }
 
-    if (materialsResult) {
-      importedMaterials = skipInvalidRows
+    // 2. Materials
+    if (materialsResult && materialsResult.data.length > 0) {
+      const matsToImport = skipInvalidRows
         ? materialsResult.data
-        : materialsResult.errorCount === 0
-        ? materialsResult.data
-        : [];
+        : materialsResult.rawRows.filter((r) => r.isValid).map((r) => r.parsedItem!).filter(Boolean);
+      if (matsToImport.length > 0) {
+        onImportMaterials(matsToImport, importMode);
+        importedAny = true;
+      }
     }
 
-    if (bomResult) {
-      importedGarments = skipInvalidRows
+    // 3. BOMs
+    if (bomResult && bomResult.data.length > 0) {
+      const garmentsToImport = skipInvalidRows
         ? bomResult.data
-        : bomResult.errorCount === 0
-        ? bomResult.data
-        : [];
-      discoveredFromBOM = bomResult.discoveredMaterials || [];
+        : bomResult.rawRows.filter((r) => r.isValid).map((r) => r.parsedItem!).filter(Boolean);
+      if (garmentsToImport.length > 0) {
+        onImportBOMs(garmentsToImport, bomResult.discoveredMaterials || [], importMode);
+        importedAny = true;
+      }
     }
 
-    // Combine newly discovered materials from BOM
-    if (discoveredFromBOM.length > 0) {
-      const existingIds = new Set([
-        ...rawMaterials.map((m) => m.id),
-        ...importedMaterials.map((m) => m.id),
-      ]);
-      const brandNew = discoveredFromBOM.filter((m) => !existingIds.has(m.id));
-      importedMaterials = [...importedMaterials, ...brandNew];
+    if (importedAny) {
+      onClose();
     }
-
-    if (
-      onImportAllDatasets &&
-      (importedSales.length > 0 || importedMaterials.length > 0 || importedGarments.length > 0)
-    ) {
-      onImportAllDatasets(importedSales, importedMaterials, importedGarments, importMode);
-    } else {
-      if (importedSales.length > 0) onImportSales(importedSales, importMode);
-      if (importedMaterials.length > 0) onImportMaterials(importedMaterials, importMode);
-      if (importedGarments.length > 0) onImportBOMs(importedGarments, discoveredFromBOM, importMode);
-    }
-
-    onClose();
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full border border-[#E6E1D8] overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-[#E6E1D8] overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[90vh]">
         {/* MODAL HEADER */}
         <div className="p-4 sm:p-5 border-b border-[#E6E1D8] flex items-center justify-between bg-[#FCFBF9]">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-[#EBF2EC] text-[#233829] rounded-xl flex items-center justify-center font-bold">
-              <Upload className="w-5 h-5" />
+            <div className="w-10 h-10 bg-[#EBF2EC] text-[#3A5A40] rounded-xl flex items-center justify-center font-bold">
+              <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-bold text-[#1C211D]">
-                  Carga, Validación & Confirmación de CSV
+                <h3 className="text-sm sm:text-base font-bold text-[#1C211D]">
+                  Carga & Validación Automática de Archivos CSV
                 </h3>
-                <span className="px-2 py-0.5 bg-[#EBF2EC] text-[#233829] text-[10px] font-bold rounded-full border border-[#D4E3D7]">
-                  TextilIQ Engine v2.0
+                <span className="px-2 py-0.5 bg-[#EBF2EC] text-[#3A5A40] text-[10px] font-bold rounded-full border border-[#D4E3D7]">
+                  Asistente en 3 Pasos
                 </span>
               </div>
               <p className="text-xs text-[#5F6B61]">
-                Proceso guiado de 3 pasos: Carga arrastrando archivos, revisión granular con solución de errores y confirmación controlada.
+                Cargue, verifique diagnósticos de inconsistencias y confirme la incorporación en el sistema.
               </p>
             </div>
           </div>
@@ -293,193 +329,256 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
         </div>
 
         {/* 3-STEP WIZARD PROGRESS BAR */}
-        <div className="bg-[#FAF8F5] px-4 sm:px-6 py-3 border-b border-[#E6E1D8]">
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 max-w-3xl mx-auto">
+        <div className="bg-[#FAF8F5] border-b border-[#E6E1D8] px-4 sm:px-6 py-2.5 flex items-center justify-between">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Step 1 */}
             <button
               type="button"
               onClick={() => setCurrentStep(1)}
-              className={`flex items-center gap-2 py-1.5 px-3 rounded-lg text-left transition-all ${
+              className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${
                 currentStep === 1
-                  ? 'bg-white text-[#233829] font-bold shadow-2xs border border-[#D5CEC2]'
-                  : 'text-[#5F6B61] hover:text-[#1C211D]'
+                  ? 'text-[#3A5A40]'
+                  : currentStep > 1
+                  ? 'text-[#1C211D] hover:underline'
+                  : 'text-[#8F9990]'
               }`}
             >
-              <span
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${
                   currentStep === 1
-                    ? 'bg-[#3A5A40] text-white'
-                    : hasAnyLoaded
-                    ? 'bg-emerald-100 text-emerald-800'
+                    ? 'bg-[#3A5A40] text-white shadow-2xs'
+                    : currentStep > 1
+                    ? 'bg-emerald-100 text-emerald-900'
                     : 'bg-stone-200 text-stone-600'
                 }`}
               >
-                {hasAnyLoaded && currentStep !== 1 ? <Check className="w-3.5 h-3.5" /> : '1'}
-              </span>
-              <div className="truncate">
-                <p className="text-[11px] font-bold leading-tight">1. Cargar</p>
-                <p className="text-[10px] text-[#8F9990] hidden sm:block">Subir o arrastrar CSV</p>
+                {currentStep > 1 ? <Check className="w-3.5 h-3.5" /> : '1'}
               </div>
+              <span>1. Cargar Archivos</span>
             </button>
+
+            <span className="text-stone-300">/</span>
 
             {/* Step 2 */}
             <button
               type="button"
-              onClick={() => hasAnyLoaded && setCurrentStep(2)}
               disabled={!hasAnyLoaded}
-              className={`flex items-center gap-2 py-1.5 px-3 rounded-lg text-left transition-all ${
+              onClick={() => hasAnyLoaded && setCurrentStep(2)}
+              className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${
                 currentStep === 2
-                  ? 'bg-white text-[#233829] font-bold shadow-2xs border border-[#D5CEC2]'
+                  ? 'text-[#3A5A40]'
+                  : currentStep > 2
+                  ? 'text-[#1C211D] hover:underline'
                   : hasAnyLoaded
-                  ? 'text-[#5F6B61] hover:text-[#1C211D]'
-                  : 'text-stone-300 cursor-not-allowed'
+                  ? 'text-[#5F6B61] hover:underline'
+                  : 'text-[#8F9990] cursor-not-allowed opacity-60'
               }`}
             >
-              <span
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${
                   currentStep === 2
-                    ? 'bg-[#3A5A40] text-white'
-                    : totalBlockingErrors > 0
-                    ? 'bg-rose-100 text-rose-700'
-                    : hasAnyLoaded
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-stone-200 text-stone-400'
+                    ? 'bg-[#3A5A40] text-white shadow-2xs'
+                    : currentStep > 2
+                    ? 'bg-emerald-100 text-emerald-900'
+                    : 'bg-stone-200 text-stone-600'
                 }`}
               >
-                2
-              </span>
-              <div className="truncate">
-                <p className="text-[11px] font-bold leading-tight">2. Revisar & Validar</p>
-                <p className="text-[10px] text-[#8F9990] hidden sm:block">
-                  {totalBlockingErrors > 0 ? `${totalBlockingErrors} problemas` : 'Diagnóstico de datos'}
-                </p>
+                {currentStep > 2 ? <Check className="w-3.5 h-3.5" /> : '2'}
               </div>
+              <span>2. Revisar & Validar</span>
+              {totalBlockingErrors > 0 && (
+                <span className="px-1.5 py-0.2 bg-rose-100 text-rose-800 text-[9px] rounded-full font-bold">
+                  {totalBlockingErrors} alertas
+                </span>
+              )}
             </button>
+
+            <span className="text-stone-300">/</span>
 
             {/* Step 3 */}
             <button
               type="button"
-              onClick={() => hasAnyLoaded && setCurrentStep(3)}
               disabled={!hasAnyLoaded}
-              className={`flex items-center gap-2 py-1.5 px-3 rounded-lg text-left transition-all ${
+              onClick={() => hasAnyLoaded && setCurrentStep(3)}
+              className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${
                 currentStep === 3
-                  ? 'bg-white text-[#233829] font-bold shadow-2xs border border-[#D5CEC2]'
+                  ? 'text-[#3A5A40]'
                   : hasAnyLoaded
-                  ? 'text-[#5F6B61] hover:text-[#1C211D]'
-                  : 'text-stone-300 cursor-not-allowed'
+                  ? 'text-[#5F6B61] hover:underline'
+                  : 'text-[#8F9990] cursor-not-allowed opacity-60'
               }`}
             >
-              <span
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${
                   currentStep === 3
-                    ? 'bg-[#3A5A40] text-white'
-                    : hasAnyLoaded
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-stone-200 text-stone-400'
+                    ? 'bg-[#3A5A40] text-white shadow-2xs'
+                    : 'bg-stone-200 text-stone-600'
                 }`}
               >
                 3
-              </span>
-              <div className="truncate">
-                <p className="text-[11px] font-bold leading-tight">3. Confirmar</p>
-                <p className="text-[10px] text-[#8F9990] hidden sm:block">Incorporar a la base</p>
               </div>
+              <span>3. Confirmar e Incorporar</span>
             </button>
           </div>
+
+          {/* Quick status indicator */}
+          {hasAnyLoaded && (
+            <div className="hidden md:flex items-center gap-2 text-[11px]">
+              <span className="text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                {totalLoadedValid} registros listos
+              </span>
+              {totalBlockingErrors > 0 && (
+                <span className="text-rose-800 font-bold bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                  {totalBlockingErrors} errores
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* NOTIFICATION MESSAGE */}
+        {/* NOTIFICATION TOAST */}
         {notification && (
-          <div className="px-4 sm:px-6 pt-3 pb-0">
-            <div
-              className={`p-3 rounded-xl text-xs font-medium flex items-center justify-between gap-3 ${
-                notification.type === 'success'
-                  ? 'bg-[#EBF2EC] border border-[#D4E3D7] text-[#233829]'
-                  : notification.type === 'error'
-                  ? 'bg-[#FDF2F0] border border-[#F8D4CF] text-[#B33927]'
-                  : 'bg-[#EEF2F6] border border-[#D0DCE8] text-[#2D4A6E]'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {notification.type === 'success' && <CheckCircle2 className="w-4 h-4 text-[#3A5A40] shrink-0" />}
-                {notification.type === 'error' && <AlertCircle className="w-4 h-4 text-[#B33927] shrink-0" />}
-                {notification.type === 'info' && <Info className="w-4 h-4 text-[#2D4A6E] shrink-0" />}
-                <span>{notification.message}</span>
-              </div>
-              <button
-                onClick={() => setNotification(null)}
-                className="text-stone-400 hover:text-stone-700 text-xs font-bold"
-              >
-                ✕
-              </button>
+          <div
+            className={`p-3 text-xs flex items-center justify-between transition-all ${
+              notification.type === 'success'
+                ? 'bg-emerald-50 text-emerald-900 border-b border-emerald-200'
+                : notification.type === 'error'
+                ? 'bg-rose-50 text-rose-900 border-b border-rose-200'
+                : 'bg-amber-50 text-amber-900 border-b border-amber-200'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {notification.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              )}
+              <span className="font-medium">{notification.message}</span>
             </div>
+            <button
+              onClick={() => setNotification(null)}
+              className="text-stone-400 hover:text-stone-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
-        {/* MAIN BODY PER STEP */}
+        {/* MODAL MAIN CONTENT */}
         <div className="p-4 sm:p-6 overflow-y-auto flex-1 text-xs">
           {/* ========================================================= */}
-          {/* PASO 1: CARGAR ARCHIVOS CSV */}
+          {/* PASO 1: CARGAR ARCHIVOS CSV O PROBAR CON DATOS DE MUESTRA */}
           {/* ========================================================= */}
           {currentStep === 1 && (
-            <div className="space-y-6">
-              {/* Universal Drag & Drop Zone */}
+            <div className="space-y-5">
+              {/* Drag & Drop Hero Box */}
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center transition-all ${
+                className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center transition-all cursor-pointer ${
                   isDragActive
-                    ? 'border-[#3A5A40] bg-[#EBF2EC]/50 scale-[1.01]'
-                    : 'border-[#D5CEC2] hover:border-[#3A5A40] bg-[#FAF8F5]'
+                    ? 'border-[#3A5A40] bg-[#EBF2EC]/80 scale-[0.99]'
+                    : 'border-[#D5CEC2] hover:border-[#3A5A40] bg-[#FCFBF9]'
                 }`}
+                onClick={() => document.getElementById('csv-file-input')?.click()}
               >
                 <input
+                  id="csv-file-input"
                   type="file"
                   accept=".csv,.txt"
                   multiple
                   onChange={handleFileInputChange}
                   className="hidden"
-                  id="csv-universal-file-input"
                 />
-                <label
-                  htmlFor="csv-universal-file-input"
-                  className="cursor-pointer flex flex-col items-center justify-center space-y-3"
-                >
-                  <div className="w-14 h-14 rounded-2xl bg-white text-[#3A5A40] shadow-sm border border-[#E6E1D8] flex items-center justify-center">
-                    <Upload className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm sm:text-base font-bold text-[#1C211D]">
-                      Arrastre y suelte sus archivos CSV aquí, o haga clic para explorar
-                    </h4>
-                    <p className="text-xs text-[#5F6B61] mt-1 max-w-md mx-auto">
-                      Puede cargar 1, 2 o los 3 archivos a la vez. TextilIQ identificará automáticamente si es de Ventas, Materias Primas o Fichas Técnicas.
-                    </p>
-                  </div>
-                  <span className="px-4 py-1.5 bg-[#3A5A40] text-white rounded-xl text-xs font-bold shadow-xs hover:bg-[#2D4632] transition-colors">
-                    Seleccionar Archivos desde su Computador
-                  </span>
-                </label>
-              </div>
 
-              {/* Status Cards of the 3 Data Sources */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5F6B61]">
-                    Archivos Reconocidos & Plantillas Oficiales
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => downloadCSVTemplate('todas')}
-                    className="text-xs font-bold text-[#3A5A40] hover:underline flex items-center gap-1"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Descargar las 3 Plantillas (.CSV)
-                  </button>
+                <div className="w-12 h-12 bg-[#EBF2EC] text-[#3A5A40] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-2xs">
+                  <Upload className="w-6 h-6" />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <h4 className="text-sm sm:text-base font-bold text-[#1C211D]">
+                  Arrastre y suelte sus archivos CSV aquí, o haga clic para explorar
+                </h4>
+                <p className="text-xs text-[#5F6B61] mt-1 max-w-md mx-auto">
+                  El sistema detecta automáticamente si el archivo corresponde a <strong>Ventas</strong>, <strong>Materias Primas</strong> o <strong>Fichas Técnicas (BOM)</strong>.
+                </p>
+
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                  <span className="px-2.5 py-1 bg-white border border-[#E6E1D8] text-[#5F6B61] rounded-lg text-[10px] font-semibold">
+                    📄 Soporta UTF-8 / Excel CSV
+                  </span>
+                  <span className="px-2.5 py-1 bg-white border border-[#E6E1D8] text-[#5F6B61] rounded-lg text-[10px] font-semibold">
+                    ✓ Comas y Puntos Decimales
+                  </span>
+                  <span className="px-2.5 py-1 bg-white border border-[#E6E1D8] text-[#5F6B61] rounded-lg text-[10px] font-semibold">
+                    ⚡ Auto-Detección de Columnas
+                  </span>
+                </div>
+              </div>
+
+              {/* One-Click Sample Datasets */}
+              <div className="p-4 bg-[#FAF8F5] rounded-xl border border-[#E6E1D8] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#3A5A40]" />
+                    <span className="font-bold text-xs text-[#1C211D]">
+                      ¿Desea probar de inmediato con datos reales de confección colombiana?
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[#5F6B61]">Carga de prueba instantánea</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => loadDemoData('ventas')}
+                    className="p-2.5 bg-white hover:bg-[#EBF2EC] border border-[#D5CEC2] rounded-xl text-left transition-colors flex items-center gap-2 group cursor-pointer"
+                  >
+                    <ShoppingBag className="w-4 h-4 text-[#3A5A40] shrink-0" />
+                    <div>
+                      <p className="font-bold text-[11px] text-[#1C211D] group-hover:text-[#3A5A40]">
+                        1. Ventas de Muestra
+                      </p>
+                      <p className="text-[10px] text-[#5F6B61]">Camisas, Jeans, Polos, Vestidos</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => loadDemoData('materias_primas')}
+                    className="p-2.5 bg-white hover:bg-[#EBF2EC] border border-[#D5CEC2] rounded-xl text-left transition-colors flex items-center gap-2 group cursor-pointer"
+                  >
+                    <Package className="w-4 h-4 text-[#3A5A40] shrink-0" />
+                    <div>
+                      <p className="font-bold text-[11px] text-[#1C211D] group-hover:text-[#3A5A40]">
+                        2. Inventario de Muestra
+                      </p>
+                      <p className="text-[10px] text-[#5F6B61]">Telas, Hilos, Botones, MOQ, Lead Time</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => loadDemoData('fichas_tecnicas')}
+                    className="p-2.5 bg-white hover:bg-[#EBF2EC] border border-[#D5CEC2] rounded-xl text-left transition-colors flex items-center gap-2 group cursor-pointer"
+                  >
+                    <Layers className="w-4 h-4 text-[#3A5A40] shrink-0" />
+                    <div>
+                      <p className="font-bold text-[11px] text-[#1C211D] group-hover:text-[#3A5A40]">
+                        3. BOM de Muestra
+                      </p>
+                      <p className="text-[10px] text-[#5F6B61]">Consumos unitarios y mermas de corte</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status of Staged Datasets & Template Download */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#5F6B61] mb-2.5">
+                  Estado de Archivos Cargados & Descarga de Plantillas
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {/* Card 1: Ventas */}
                   <div
                     className={`p-4 rounded-xl border transition-all ${
@@ -525,7 +624,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                     <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center justify-between text-[11px]">
                       <button
                         onClick={() => downloadCSVTemplate('ventas')}
-                        className="text-[#3A5A40] hover:underline font-semibold flex items-center gap-1"
+                        className="text-[#3A5A40] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
                       >
                         <Download className="w-3 h-3" />
                         Plantilla
@@ -533,7 +632,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                       {salesResult && (
                         <button
                           onClick={() => setSalesResult(null)}
-                          className="text-[#B33927] hover:underline flex items-center gap-1"
+                          className="text-[#B33927] hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           <Trash2 className="w-3 h-3" />
                           Quitar
@@ -587,7 +686,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                     <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center justify-between text-[11px]">
                       <button
                         onClick={() => downloadCSVTemplate('materias_primas')}
-                        className="text-[#3A5A40] hover:underline font-semibold flex items-center gap-1"
+                        className="text-[#3A5A40] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
                       >
                         <Download className="w-3 h-3" />
                         Plantilla
@@ -595,7 +694,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                       {materialsResult && (
                         <button
                           onClick={() => setMaterialsResult(null)}
-                          className="text-[#B33927] hover:underline flex items-center gap-1"
+                          className="text-[#B33927] hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           <Trash2 className="w-3 h-3" />
                           Quitar
@@ -649,7 +748,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                     <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center justify-between text-[11px]">
                       <button
                         onClick={() => downloadCSVTemplate('fichas_tecnicas')}
-                        className="text-[#3A5A40] hover:underline font-semibold flex items-center gap-1"
+                        className="text-[#3A5A40] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
                       >
                         <Download className="w-3 h-3" />
                         Plantilla
@@ -657,7 +756,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                       {bomResult && (
                         <button
                           onClick={() => setBOMResult(null)}
-                          className="text-[#B33927] hover:underline flex items-center gap-1"
+                          className="text-[#B33927] hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           <Trash2 className="w-3 h-3" />
                           Quitar
@@ -685,7 +784,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                         setActivePreviewTab('ventas');
                         setSelectedIssueDetail(null);
                       }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
                         activePreviewTab === 'ventas'
                           ? 'bg-[#3A5A40] text-white shadow-2xs'
                           : 'bg-stone-100 text-[#5F6B61] hover:bg-stone-200'
@@ -708,7 +807,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                         setActivePreviewTab('materias_primas');
                         setSelectedIssueDetail(null);
                       }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
                         activePreviewTab === 'materias_primas'
                           ? 'bg-[#3A5A40] text-white shadow-2xs'
                           : 'bg-stone-100 text-[#5F6B61] hover:bg-stone-200'
@@ -731,7 +830,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                         setActivePreviewTab('fichas_tecnicas');
                         setSelectedIssueDetail(null);
                       }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
                         activePreviewTab === 'fichas_tecnicas'
                           ? 'bg-[#3A5A40] text-white shadow-2xs'
                           : 'bg-stone-100 text-[#5F6B61] hover:bg-stone-200'
@@ -753,7 +852,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setRowFilter('all')}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ${
                       rowFilter === 'all' ? 'bg-white text-[#1C211D] shadow-2xs' : 'text-[#5F6B61]'
                     }`}
                   >
@@ -762,7 +861,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setRowFilter('valid')}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ${
                       rowFilter === 'valid' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-[#5F6B61]'
                     }`}
                   >
@@ -771,7 +870,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setRowFilter('issues')}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ${
                       rowFilter === 'issues' ? 'bg-white text-rose-700 shadow-2xs' : 'text-[#5F6B61]'
                     }`}
                   >
@@ -806,15 +905,15 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0" />
                       <h5 className="font-bold text-xs text-amber-900">
-                        Diagnóstico de Inconsistencias Detectadas ({currentActiveResult.issues.length})
+                        Diagnóstico Exacto de Inconsistencias ({currentActiveResult.issues.length})
                       </h5>
                     </div>
-                    <span className="text-[10px] text-amber-700">
-                      Haga clic en un problema para ver la sugerencia exacta de corrección
+                    <span className="text-[10px] text-amber-700 font-medium">
+                      Indica fila, columna, dato con problema y cómo solucionarlo
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1">
                     {currentActiveResult.issues.map((issue, idx) => (
                       <div
                         key={idx}
@@ -842,10 +941,10 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
                           </span>
                         </div>
                         <p className="text-[11px] font-semibold text-stone-900 truncate">
-                          {issue.issue} (Valor: "{String(issue.value)}")
+                          {issue.issue} (Valor encontrado: "{String(issue.value)}")
                         </p>
                         <p className="text-[10px] text-stone-600 mt-0.5">
-                          💡 <span className="font-medium">{issue.suggestion}</span>
+                          💡 <span className="font-medium text-stone-800">{issue.suggestion}</span>
                         </p>
                       </div>
                     ))}
@@ -1109,7 +1208,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-[#5F6B61] hover:text-[#1C211D] transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-[#5F6B61] hover:text-[#1C211D] transition-colors cursor-pointer"
             >
               Cancelar
             </button>
@@ -1117,7 +1216,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
             <button
               type="button"
               onClick={() => setCurrentStep((prev) => (prev > 1 ? ((prev - 1) as WizardStep) : 1))}
-              className="px-4 py-2 text-xs font-bold text-[#5F6B61] hover:text-[#1C211D] flex items-center gap-1.5 transition-colors"
+              className="px-4 py-2 text-xs font-bold text-[#5F6B61] hover:text-[#1C211D] flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Paso Anterior
