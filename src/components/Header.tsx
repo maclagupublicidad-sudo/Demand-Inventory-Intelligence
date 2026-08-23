@@ -106,15 +106,23 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <div className="min-w-0">
               <div className="flex items-center space-x-1.5 sm:space-x-2">
-                <span className="font-bold text-base sm:text-lg tracking-tight text-[#1C211D] truncate">
-                  TextilIQ
+                <span className="font-black text-base sm:text-lg tracking-tight text-[#1C211D] truncate">
+                  TEXORA
                 </span>
-                <span className="px-1.5 sm:px-2 py-0.5 bg-[#EBF2EC] text-[#3A5A40] text-[9px] sm:text-[10px] font-bold rounded-full uppercase tracking-wider border border-[#D4E3D7] whitespace-nowrap">
+                <span className="px-1.5 sm:px-2 py-0.5 bg-[#EBF2EC] text-[#3A5A40] text-[9px] sm:text-[10px] font-bold rounded-full uppercase tracking-wider border border-[#D4E3D7] whitespace-nowrap hidden sm:inline-block">
                   Multi-Tenant
                 </span>
               </div>
-              <p className="text-[10px] sm:text-[11px] text-[#5F6B61] hidden lg:block truncate">
-                MRP, Fichas Técnicas & Analítica Comparativa Textil
+              <div className="hidden md:flex flex-col">
+                <p className="text-[10px] sm:text-[11px] font-semibold text-[#2D4632] leading-tight truncate">
+                  Inteligencia para la producción textil.
+                </p>
+                <p className="text-[9px] font-medium text-[#5F6B61] leading-tight truncate">
+                  Planifica. Compra. Produce. Controla.
+                </p>
+              </div>
+              <p className="text-[10px] text-[#5F6B61] block md:hidden truncate">
+                Inteligencia para la producción textil.
               </p>
             </div>
 

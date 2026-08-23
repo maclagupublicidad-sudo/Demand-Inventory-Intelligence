@@ -367,14 +367,14 @@ export const ButtonTourModal: React.FC<ButtonTourModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black text-[#1C211D]">
-                  Demo Interactiva & Guía de Botones TextilIQ
+                  Demo Interactiva & Guía de Botones TEXORA
                 </h2>
                 <span className="px-2 py-0.5 bg-[#3A5A40] text-white text-[10px] font-bold rounded-full">
-                  Guía Oficial
+                  TEXORA Guide
                 </span>
               </div>
               <p className="text-xs text-[#5F6B61] mt-0.5">
-                Conoce para qué sirve cada botón, módulo y herramienta de la plataforma
+                Inteligencia para la producción textil • Planifica. Compra. Produce. Controla.
               </p>
             </div>
           </div>

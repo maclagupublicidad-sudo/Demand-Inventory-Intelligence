@@ -47,11 +47,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base sm:text-lg font-bold text-[#1C211D]">
-                    ¡Bienvenido a TextilIQ! Sistema listo para ingresar sus datos reales
+                  <h3 className="text-base sm:text-lg font-black text-[#1C211D]">
+                    ¡Bienvenido a TEXORA! Inteligencia para la producción textil
                   </h3>
                   <span className="px-2 py-0.5 bg-[#EBF2EC] text-[#3A5A40] text-[10px] font-bold rounded-full border border-[#D4E3D7]">
-                    Listo para Producción
+                    Planifica • Compra • Produce • Controla
                   </span>
                 </div>
                 <p className="text-xs sm:text-sm text-[#5F6B61] max-w-2xl leading-relaxed">

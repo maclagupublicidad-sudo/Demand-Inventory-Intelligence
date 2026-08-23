@@ -1,6 +1,6 @@
 {
-  "name": "TextilIQ Demand & Inventory",
-  "description": "Plataforma multi-empresa de inteligencia de demanda, cálculo de requerimientos MRP, fichas técnicas (BOM), costeo, ejecución en planta (MES), auditoría de mermas, analítica temporal y benchmarking comparativo inter-empresas para la industria textil de confección.",
+  "name": "TEXORA",
+  "description": "TEXORA - Inteligencia para la producción textil. Planifica. Compra. Produce. Controla.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

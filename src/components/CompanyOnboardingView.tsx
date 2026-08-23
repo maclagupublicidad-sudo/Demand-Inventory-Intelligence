@@ -190,19 +190,23 @@ export const CompanyOnboardingView: React.FC<CompanyOnboardingViewProps> = ({
       {/* Top Bar */}
       <header className="bg-white border-b border-[#E6E1D8] px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-2xs">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-[#3A5A40] flex items-center justify-center text-white shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-[#3A5A40] flex items-center justify-center text-white shadow-xs shrink-0">
             <Scissors className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-black text-lg tracking-tight text-[#1C211D]">
-                TextilIQ
+              <span className="font-black text-xl tracking-tight text-[#1C211D]">
+                TEXORA
               </span>
               <span className="px-2 py-0.5 bg-[#EBF2EC] text-[#3A5A40] text-[10px] font-bold rounded-full border border-[#D4E3D7]">
-                MRP & Demanda Textil
+                Inteligencia Textil
               </span>
             </div>
-            <p className="text-xs text-[#5F6B61]">Portal de Registro y Configuración Inicial</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+              <p className="text-xs font-semibold text-[#2D4632]">Inteligencia para la producción textil.</p>
+              <span className="hidden sm:inline text-xs text-[#8F9990]">•</span>
+              <p className="text-xs font-medium text-[#5F6B61]">Planifica. Compra. Produce. Controla.</p>
+            </div>
           </div>
         </div>
 
