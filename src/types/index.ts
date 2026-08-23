@@ -376,7 +376,9 @@ export type PermissionKey =
   | 'view_costing' // Ver comparador Taller vs Maquila
   | 'edit_costing_rates' // Modificar tarifas MOD, CIF y satélites
   | 'manage_users' // Crear usuarios, cambiar claves y asignar permisos
-  | 'import_export_csv'; // Cargar o descargar bases de datos CSV
+  | 'import_export_csv' // Cargar o descargar bases de datos CSV
+  | 'manage_companies' // Registrar y administrar empresas y sedes
+  | 'view_company_benchmarks'; // Ver comparativos y benchmarking inter-empresas
 
 export type UserRole =
   | 'Administrador'
@@ -399,6 +401,55 @@ export interface AppUser {
   avatarColor?: string;
   permissions: PermissionKey[];
   isActive: boolean;
+  companyId?: string; // ID de la empresa asociada ('ALL' para Super Admin global)
   lastLogin?: string;
   createdAt: string;
 }
+
+export interface CompanyTenant {
+  id: string;
+  name: string; // Razón Social de la empresa
+  nit: string; // NIT / RUT / Identificación Fiscal
+  tradeName?: string; // Nombre de Marca / Comercial
+  specialty: string; // Especialidad textil (Camisería, Denim, Ropa Deportiva, etc.)
+  city: string; // Ciudad / Sede principal (Medellín, Bogotá, etc.)
+  country: string; // País (ej: Colombia)
+  currency: string; // Moneda base (COP, USD, MXN)
+  brandColor?: string; // Color distintivo para badges
+  description?: string;
+  createdAt: string;
+  updatedAt?: string;
+  garments: Garment[];
+  rawMaterials: RawMaterial[];
+  salesRecords: SalesRecord[];
+  cycleConfig: ProductionCycleConfig;
+  purchaseOrders: PurchaseOrder[];
+  productionOrders: ProductionOrder[];
+  users?: AppUser[];
+}
+
+export interface CompanyComparativeMetrics {
+  companyId: string;
+  companyName: string;
+  nit: string;
+  specialty: string;
+  city: string;
+  brandColor: string;
+  totalGarments: number;
+  totalRawMaterials: number;
+  totalStockValueCOP: number;
+  averageProfitMarginPercent: number;
+  averageTheoreticalScrapPercent: number;
+  averageActualScrapPercent: number;
+  scrapEfficiencyScore: number; // 0-100%
+  averageSewingSAMMinutes: number;
+  averageProductionCycleDays: number;
+  averageSupplierLeadTimeDays: number;
+  activeOrdersCount: number;
+  onTimeDeliveryRatePercent: number;
+  totalProjectedDemandUnits: number;
+  totalRevenueProjectedCOP: number;
+  estimatedManufacturingCostAverage: number;
+  averageSellingPrice: number;
+}
+

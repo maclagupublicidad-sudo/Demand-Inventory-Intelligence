@@ -13,6 +13,7 @@ import {
   DEMO_PRODUCTION_ORDERS,
 } from './data/mockData';
 import { INITIAL_USERS } from './data/mockUsers';
+import { DEMO_COMPANIES } from './data/mockCompanies';
 import {
   Garment,
   RawMaterial,
@@ -25,6 +26,7 @@ import {
   BOMItem,
   MRPResultItem,
   AppUser,
+  CompanyTenant,
 } from './types';
 import { calculateMRP } from './services/mrpEngine';
 import { formatCOP } from './utils/formatters';
@@ -47,6 +49,8 @@ import { RawMaterialsManager } from './components/RawMaterialsManager';
 import { LoginModal } from './components/LoginModal';
 import { UserManagementModal } from './components/UserManagementModal';
 import { AccessRestricted } from './components/AccessRestricted';
+import { CompanyManagerModal } from './components/CompanyManagerModal';
+import { CompanyBenchmarkView } from './components/CompanyBenchmarkView';
 import {
   Layers,
   Package,
@@ -61,6 +65,35 @@ import {
 } from 'lucide-react';
 
 export default function App() {
+  // Multi-Tenancy Companies Management
+  const [companies, setCompanies] = useState<CompanyTenant[]>(() => {
+    const saved = localStorage.getItem('textiliq_companies');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error('Error parsing stored companies', e);
+      }
+    }
+    return DEMO_COMPANIES;
+  });
+
+  const [activeCompanyId, setActiveCompanyId] = useState<string>(() => {
+    const saved = localStorage.getItem('textiliq_active_company_id');
+    if (saved) return saved;
+    return DEMO_COMPANIES[0].id;
+  });
+
+  const [isCompanyManagerOpen, setIsCompanyManagerOpen] = useState<boolean>(false);
+
+  // Active Company Reference
+  const activeCompany = useMemo(() => {
+    return companies.find((c) => c.id === activeCompanyId) || companies[0] || DEMO_COMPANIES[0];
+  }, [companies, activeCompanyId]);
+
   // User & RBAC State
   const [users, setUsers] = useState<AppUser[]>(() => {
     const saved = localStorage.getItem('textiliq_users');
@@ -71,7 +104,7 @@ export default function App() {
         console.error('Error parsing stored users', e);
       }
     }
-    return INITIAL_USERS;
+    return activeCompany.users && activeCompany.users.length > 0 ? activeCompany.users : INITIAL_USERS;
   });
 
   const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
@@ -83,7 +116,7 @@ export default function App() {
         console.error('Error parsing current user', e);
       }
     }
-    return INITIAL_USERS[0];
+    return users[0] || INITIAL_USERS[0];
   });
 
   // Main Domain State with LocalStorage Persistence
@@ -96,7 +129,7 @@ export default function App() {
         console.error(e);
       }
     }
-    return initialGarments;
+    return activeCompany.garments || initialGarments;
   });
 
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>(() => {
@@ -108,7 +141,7 @@ export default function App() {
         console.error(e);
       }
     }
-    return initialRawMaterials;
+    return activeCompany.rawMaterials || initialRawMaterials;
   });
 
   const [salesRecords, setSalesRecords] = useState<SalesRecord[]>(() => {
@@ -120,7 +153,7 @@ export default function App() {
         console.error(e);
       }
     }
-    return sampleSalesRecords;
+    return activeCompany.salesRecords || sampleSalesRecords;
   });
 
   const [cycleConfig, setCycleConfig] = useState<ProductionCycleConfig>(() => {
@@ -132,7 +165,7 @@ export default function App() {
         console.error(e);
       }
     }
-    return initialCycleConfig;
+    return activeCompany.cycleConfig || initialCycleConfig;
   });
 
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(() => {
@@ -144,7 +177,7 @@ export default function App() {
         console.error(e);
       }
     }
-    return initialPurchaseOrders;
+    return activeCompany.purchaseOrders || initialPurchaseOrders;
   });
 
   const [productionOrders, setProductionOrders] = useState<ProductionOrder[]>(() => {
@@ -156,10 +189,10 @@ export default function App() {
         console.error(e);
       }
     }
-    return initialProductionOrders;
+    return activeCompany.productionOrders || initialProductionOrders;
   });
 
-  // Automatically save domain state changes
+  // Automatically save domain state changes to local storage
   useEffect(() => {
     localStorage.setItem('textiliq_garments', JSON.stringify(garments));
   }, [garments]);
@@ -183,6 +216,35 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('textiliq_production_orders', JSON.stringify(productionOrders));
   }, [productionOrders]);
+
+  useEffect(() => {
+    localStorage.setItem('textiliq_companies', JSON.stringify(companies));
+  }, [companies]);
+
+  useEffect(() => {
+    localStorage.setItem('textiliq_active_company_id', activeCompanyId);
+  }, [activeCompanyId]);
+
+  // Keep active company data mirrored in the companies array for live benchmarking & export
+  useEffect(() => {
+    setCompanies((prev) =>
+      prev.map((c) =>
+        c.id === activeCompanyId
+          ? {
+              ...c,
+              garments,
+              rawMaterials,
+              salesRecords,
+              cycleConfig,
+              purchaseOrders,
+              productionOrders,
+              users,
+              updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+            }
+          : c
+      )
+    );
+  }, [garments, rawMaterials, salesRecords, cycleConfig, purchaseOrders, productionOrders, users, activeCompanyId]);
 
   // Navigation & Filtering
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -497,6 +559,126 @@ export default function App() {
     }
   };
 
+  // Multi-tenant Company Management Handlers
+  const handleSelectCompany = (newCompanyId: string) => {
+    if (newCompanyId === activeCompanyId) return;
+
+    // 1. Snapshot current active data into companies array
+    setCompanies((prev) =>
+      prev.map((comp) => {
+        if (comp.id === activeCompanyId) {
+          return {
+            ...comp,
+            garments,
+            rawMaterials,
+            salesRecords,
+            cycleConfig,
+            purchaseOrders,
+            productionOrders,
+            users,
+            updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          };
+        }
+        return comp;
+      })
+    );
+
+    // 2. Load target company data into active states
+    const targetComp = companies.find((c) => c.id === newCompanyId);
+    if (targetComp) {
+      setActiveCompanyId(targetComp.id);
+      localStorage.setItem('textiliq_active_company_id', targetComp.id);
+
+      setGarments(targetComp.garments || []);
+      setRawMaterials(targetComp.rawMaterials || []);
+      setSalesRecords(targetComp.salesRecords || []);
+      setCycleConfig(targetComp.cycleConfig || initialCycleConfig);
+      setPurchaseOrders(targetComp.purchaseOrders || []);
+      setProductionOrders(targetComp.productionOrders || []);
+      if (targetComp.users && targetComp.users.length > 0) {
+        setUsers(targetComp.users);
+        setCurrentUser(targetComp.users[0]);
+      }
+    }
+  };
+
+  const handleSaveCompany = (companyToSave: CompanyTenant) => {
+    setCompanies((prev) => {
+      const exists = prev.some((c) => c.id === companyToSave.id);
+      let updated: CompanyTenant[];
+      if (exists) {
+        updated = prev.map((c) =>
+          c.id === companyToSave.id
+            ? {
+                ...companyToSave,
+                garments: c.id === activeCompanyId ? garments : companyToSave.garments,
+                rawMaterials: c.id === activeCompanyId ? rawMaterials : companyToSave.rawMaterials,
+                salesRecords: c.id === activeCompanyId ? salesRecords : companyToSave.salesRecords,
+                cycleConfig: c.id === activeCompanyId ? cycleConfig : companyToSave.cycleConfig,
+                purchaseOrders: c.id === activeCompanyId ? purchaseOrders : companyToSave.purchaseOrders,
+                productionOrders: c.id === activeCompanyId ? productionOrders : companyToSave.productionOrders,
+                users: c.id === activeCompanyId ? users : companyToSave.users,
+                updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+              }
+            : c
+        );
+      } else {
+        updated = [...prev, companyToSave];
+      }
+      localStorage.setItem('textiliq_companies', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleDeleteCompany = (companyId: string) => {
+    if (companies.length <= 1) {
+      alert('Debe existir al menos una empresa registrada en el sistema.');
+      return;
+    }
+    const remaining = companies.filter((c) => c.id !== companyId);
+    setCompanies(remaining);
+    localStorage.setItem('textiliq_companies', JSON.stringify(remaining));
+
+    if (activeCompanyId === companyId) {
+      const nextComp = remaining[0];
+      setActiveCompanyId(nextComp.id);
+      localStorage.setItem('textiliq_active_company_id', nextComp.id);
+      setGarments(nextComp.garments || []);
+      setRawMaterials(nextComp.rawMaterials || []);
+      setSalesRecords(nextComp.salesRecords || []);
+      setCycleConfig(nextComp.cycleConfig || initialCycleConfig);
+      setPurchaseOrders(nextComp.purchaseOrders || []);
+      setProductionOrders(nextComp.productionOrders || []);
+      if (nextComp.users && nextComp.users.length > 0) {
+        setUsers(nextComp.users);
+        setCurrentUser(nextComp.users[0]);
+      }
+    }
+  };
+
+  const handleImportFullDatabaseBackup = (importedCompanies: CompanyTenant[], targetActiveId?: string) => {
+    setCompanies(importedCompanies);
+    localStorage.setItem('textiliq_companies', JSON.stringify(importedCompanies));
+    const nextActive = targetActiveId || importedCompanies[0]?.id;
+    if (nextActive) {
+      setActiveCompanyId(nextActive);
+      localStorage.setItem('textiliq_active_company_id', nextActive);
+      const activeData = importedCompanies.find((c) => c.id === nextActive) || importedCompanies[0];
+      if (activeData) {
+        setGarments(activeData.garments || []);
+        setRawMaterials(activeData.rawMaterials || []);
+        setSalesRecords(activeData.salesRecords || []);
+        setCycleConfig(activeData.cycleConfig || initialCycleConfig);
+        setPurchaseOrders(activeData.purchaseOrders || []);
+        setProductionOrders(activeData.productionOrders || []);
+        if (activeData.users && activeData.users.length > 0) {
+          setUsers(activeData.users);
+          setCurrentUser(activeData.users[0]);
+        }
+      }
+    }
+  };
+
   const handleClearAllData = () => {
     if (confirm('¿Está seguro de que desea vaciar todos los datos y dejar el sistema completamente en blanco para producción?')) {
       setGarments([]);
@@ -762,6 +944,10 @@ export default function App() {
         setActiveTab={setActiveTab}
         cycleConfig={cycleConfig}
         currentUser={currentUser}
+        companies={companies}
+        activeCompanyId={activeCompanyId}
+        onSelectCompany={handleSelectCompany}
+        onOpenCompanyManager={() => setIsCompanyManagerOpen(true)}
         onOpenCycleModal={() => setIsCycleModalOpen(true)}
         onOpenCSVModal={() => setIsCSVModalOpen(true)}
         onOpenAIAdvisor={() => setIsAIAdvisorOpen(true)}
@@ -953,6 +1139,29 @@ export default function App() {
             />
           )
         )}
+
+        {/* Tab 7: Comparativo Inter-Empresas & Benchmarking */}
+        {activeTab === 'benchmark' && (
+          !hasPermission(currentUser, 'view_company_benchmarks') ? (
+            <AccessRestricted
+              moduleName="Comparativo Inter-Empresas & Benchmarking"
+              requiredPermission="view_company_benchmarks"
+              currentUser={currentUser}
+              onOpenLoginModal={() => setIsLoginModalOpen(true)}
+              onOpenUserManagementModal={() => setIsUserManagementModalOpen(true)}
+            />
+          ) : (
+            <CompanyBenchmarkView
+              companies={companies}
+              activeCompanyId={activeCompanyId}
+              onSelectCompany={(id) => {
+                handleSelectCompany(id);
+                setActiveTab('dashboard');
+              }}
+              onOpenCompanyManager={() => setIsCompanyManagerOpen(true)}
+            />
+          )
+        )}
       </main>
 
       {/* Footer info bar */}
@@ -963,14 +1172,30 @@ export default function App() {
           <span>Plataforma Textil MRP & Inteligencia de Demanda Comercial en Colombia</span>
         </div>
         <div className="flex items-center gap-4 text-xs text-[#8F9990]">
+          <span>{companies.length} empresas registradas</span>
+          <span>•</span>
           <span>{garments.length} prendas</span>
+          <span>•</span>
           <span>{rawMaterials.length} materias primas</span>
+          <span>•</span>
           <span>{users.filter((u) => u.isActive).length} usuarios activos</span>
+          <span>•</span>
           <span>Ciclo: {cycleConfig.durationMonths} meses</span>
         </div>
       </footer>
 
       {/* Modals & Dialogs */}
+      <CompanyManagerModal
+        isOpen={isCompanyManagerOpen}
+        onClose={() => setIsCompanyManagerOpen(false)}
+        companies={companies}
+        activeCompanyId={activeCompanyId}
+        currentUser={currentUser}
+        onSelectCompany={handleSelectCompany}
+        onSaveCompany={handleSaveCompany}
+        onDeleteCompany={handleDeleteCompany}
+        onImportFullDatabaseBackup={handleImportFullDatabaseBackup}
+      />
       <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}

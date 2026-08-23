@@ -93,6 +93,18 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     category: 'Seguridad',
   },
   {
+    key: 'manage_companies',
+    label: 'Administrar Empresas & Multi-Sede',
+    description: 'Registrar nuevas empresas, cambiar sede activa, editar datos fiscales y copias de seguridad.',
+    category: 'Seguridad',
+  },
+  {
+    key: 'view_company_benchmarks',
+    label: 'Ver Comparativo Inter-Empresas & Benchmarking',
+    description: 'Comparar indicadores de eficiencia, mermas, SAM y márgenes entre múltiples empresas.',
+    category: 'General',
+  },
+  {
     key: 'import_export_csv',
     label: 'Importar / Exportar Datos CSV',
     description: 'Cargar o descargar bases de datos maestras de ventas, insumos y fichas técnicas.',
@@ -118,6 +130,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, PermissionKey[]> = {
     'edit_costing_rates',
     'manage_production_cycles',
     'manage_users',
+    'manage_companies',
+    'view_company_benchmarks',
     'import_export_csv',
   ],
   Comercial: [
@@ -126,6 +140,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, PermissionKey[]> = {
     'edit_sales_targets',
     'view_tech_packs',
     'view_production_execution',
+    'view_company_benchmarks',
     'import_export_csv',
   ],
   Ingenieria_BOM: [
@@ -134,6 +149,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, PermissionKey[]> = {
     'edit_tech_packs',
     'view_production_execution',
     'view_costing',
+    'view_company_benchmarks',
     'import_export_csv',
   ],
   Compras_MRP: [

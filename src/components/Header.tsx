@@ -19,8 +19,13 @@ import {
   ShieldCheck,
   Factory,
   Activity,
+  Building,
+  BarChart3,
+  Plus,
+  ArrowRight,
+  Database,
 } from 'lucide-react';
-import { ProductionCycleConfig, AppUser } from '../types';
+import { ProductionCycleConfig, AppUser, CompanyTenant } from '../types';
 import { ROLE_LABELS, hasPermission } from '../utils/permissions';
 import { SEASONS_CONFIG, SeasonType } from '../utils/seasonality';
 
@@ -29,6 +34,10 @@ interface HeaderProps {
   setActiveTab: (tab: string) => void;
   cycleConfig: ProductionCycleConfig;
   currentUser: AppUser | null;
+  companies: CompanyTenant[];
+  activeCompanyId: string;
+  onSelectCompany: (companyId: string) => void;
+  onOpenCompanyManager: () => void;
   onOpenCycleModal: () => void;
   onOpenCSVModal: () => void;
   onOpenAIAdvisor: () => void;
@@ -45,6 +54,10 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   cycleConfig,
   currentUser,
+  companies,
+  activeCompanyId,
+  onSelectCompany,
+  onOpenCompanyManager,
   onOpenCycleModal,
   onOpenCSVModal,
   onOpenAIAdvisor,
@@ -56,10 +69,14 @@ export const Header: React.FC<HeaderProps> = ({
   onResetDemoData,
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
+  const [isCompanyMenuOpen, setIsCompanyMenuOpen] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+
+  const activeCompany = companies.find((c) => c.id === activeCompanyId) || companies[0];
 
   const roleMeta = currentUser ? ROLE_LABELS[currentUser.role] || ROLE_LABELS.Personalizado : null;
   const canManageUsers = hasPermission(currentUser, 'manage_users');
+  const canManageCompanies = hasPermission(currentUser, 'manage_companies');
   const canManageCycles = hasPermission(currentUser, 'manage_production_cycles');
   const canViewPOs = hasPermission(currentUser, 'view_mrp') || hasPermission(currentUser, 'manage_purchase_orders');
   const canImportCSV = hasPermission(currentUser, 'import_export_csv');
@@ -77,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Top Header Bar */}
         <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
-          {/* Logo & Identity */}
+          {/* Logo & Company Selector */}
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#3A5A40] flex items-center justify-center text-white shadow-xs shrink-0">
               <Scissors className="w-4 h-4" />
@@ -88,15 +105,128 @@ export const Header: React.FC<HeaderProps> = ({
                   TextilIQ
                 </span>
                 <span className="px-1.5 sm:px-2 py-0.5 bg-[#EBF2EC] text-[#3A5A40] text-[9px] sm:text-[10px] font-bold rounded-full uppercase tracking-wider border border-[#D4E3D7] whitespace-nowrap">
-                  Demand & MRP
-                </span>
-                <span className="hidden xl:inline-block px-2 py-0.5 bg-[#E4ECE6] text-[#2D4736] text-[10px] font-bold rounded-full uppercase tracking-wider border border-[#CDDCD0]">
-                  Colombia
+                  Multi-Tenant
                 </span>
               </div>
               <p className="text-[10px] sm:text-[11px] text-[#5F6B61] hidden lg:block truncate">
-                Inteligencia de Demanda, Fichas Técnicas & Abastecimiento
+                MRP, Fichas Técnicas & Analítica Comparativa Textil
               </p>
+            </div>
+
+            {/* Active Company Selector Dropdown */}
+            <div className="relative ml-1 sm:ml-2">
+              <button
+                onClick={() => setIsCompanyMenuOpen(!isCompanyMenuOpen)}
+                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1 rounded-xl border border-[#D5CEC2] hover:border-[#3A5A40] bg-[#FAF8F5] hover:bg-white transition-all shadow-2xs cursor-pointer group"
+                id="header-company-selector-btn"
+                title="Cambiar empresa activa o registrar nueva"
+              >
+                <div
+                  className="w-5 h-5 rounded-md text-white text-[10px] font-black flex items-center justify-center shadow-2xs shrink-0"
+                  style={{ backgroundColor: activeCompany?.brandColor || '#3A5A40' }}
+                >
+                  {activeCompany?.name.substring(0, 2).toUpperCase() || 'EM'}
+                </div>
+                <div className="text-left hidden sm:block max-w-[120px] md:max-w-[170px] truncate">
+                  <span className="text-xs font-bold text-[#1C211D] block truncate leading-none">
+                    {activeCompany?.name || 'Seleccionar Empresa'}
+                  </span>
+                  <span className="text-[9px] text-[#5F6B61] truncate block leading-tight mt-0.5 font-mono">
+                    {activeCompany?.city ? `${activeCompany.city.split(',')[0]}` : 'Colombia'}
+                  </span>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-[#8F9990] group-hover:text-[#1C211D] transition-colors shrink-0" />
+              </button>
+
+              {/* Company Dropdown Menu */}
+              {isCompanyMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsCompanyMenuOpen(false)}
+                  />
+                  <div className="absolute left-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl border border-[#E6E1D8] shadow-2xl z-50 p-3 space-y-2 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-2 py-1.5 border-b border-[#E6E1D8] flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-[#1C211D] block">Empresas Registradas</span>
+                        <span className="text-[10px] text-[#5F6B61]">Selecciona tu espacio de trabajo</span>
+                      </div>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#EBF3ED] text-[#2D4632]">
+                        {companies.length}
+                      </span>
+                    </div>
+
+                    <div className="max-h-56 overflow-y-auto space-y-1">
+                      {companies.map((comp) => {
+                        const isSelected = comp.id === activeCompanyId;
+                        return (
+                          <button
+                            key={comp.id}
+                            onClick={() => {
+                              onSelectCompany(comp.id);
+                              setIsCompanyMenuOpen(false);
+                            }}
+                            className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition-colors cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#EBF2EC] text-[#233829] font-bold'
+                                : 'hover:bg-[#FAF8F5] text-[#1C211D]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0 pr-2">
+                              <div
+                                className="w-6 h-6 rounded-lg text-white text-[10px] font-bold flex items-center justify-center shrink-0"
+                                style={{ backgroundColor: comp.brandColor || '#3A5A40' }}
+                              >
+                                {comp.name.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold truncate leading-tight">{comp.name}</p>
+                                <p className="text-[10px] text-[#5F6B61] truncate font-mono">
+                                  NIT: {comp.nit} • {comp.specialty}
+                                </p>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#3A5A40] text-white shrink-0">
+                                Activa
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-2 border-t border-[#E6E1D8] space-y-1">
+                      <button
+                        onClick={() => {
+                          setIsCompanyMenuOpen(false);
+                          onOpenCompanyManager();
+                        }}
+                        className="w-full text-left px-2.5 py-2 rounded-xl bg-[#FAF8F5] hover:bg-[#EAE6DF] text-[#1C211D] text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
+                        id="header-open-company-manager-btn"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Building className="w-3.5 h-3.5 text-[#3A5A40]" />
+                          Administrar / Registrar Empresas
+                        </span>
+                        <ArrowRight className="w-3.5 h-3.5 text-[#5F6B61]" />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsCompanyMenuOpen(false);
+                          setActiveTab('benchmark');
+                        }}
+                        className="w-full text-left px-2.5 py-2 rounded-xl hover:bg-[#FAF8F5] text-[#1C211D] text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                        id="header-go-to-benchmark-btn"
+                      >
+                        <BarChart3 className="w-3.5 h-3.5 text-[#1E40AF]" />
+                        Ver Comparativo Inter-Empresas
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -104,13 +234,13 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="hidden lg:flex items-center bg-[#FAF8F5] rounded-lg px-2.5 py-1 border border-[#E6E1D8] text-xs">
             <Calendar className="w-3.5 h-3.5 text-[#3A5A40] mr-1.5 shrink-0" />
             <span className="text-[#5F6B61] mr-1 font-medium hidden xl:inline">Ciclo:</span>
-            <span className="font-semibold text-[#1C211D] mr-2 truncate max-w-[160px] xl:max-w-[220px]">
+            <span className="font-semibold text-[#1C211D] mr-2 truncate max-w-[150px] xl:max-w-[200px]">
               {cycleConfig.durationMonths}m • {seasonInfo.name.split(' ')[0]}
             </span>
             {canManageCycles && (
               <button
                 onClick={onOpenCycleModal}
-                className="text-[10px] font-bold text-[#3A5A40] hover:text-[#2D4632] bg-white border border-[#E6E1D8] hover:border-[#D5CEC2] px-1.5 py-0.5 rounded shadow-2xs transition-colors flex items-center gap-1 shrink-0"
+                className="text-[10px] font-bold text-[#3A5A40] hover:text-[#2D4632] bg-white border border-[#E6E1D8] hover:border-[#D5CEC2] px-1.5 py-0.5 rounded shadow-2xs transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
                 id="header-edit-cycle-btn"
               >
                 <Sliders className="w-2.5 h-2.5" />
@@ -124,7 +254,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* AI Advisor Button */}
             <button
               onClick={onOpenAIAdvisor}
-              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#3A5A40] hover:bg-[#2D4632] active:scale-95 text-white text-xs font-semibold shadow-xs transition-all touch-manipulation"
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#3A5A40] hover:bg-[#2D4632] active:scale-95 text-white text-xs font-semibold shadow-xs transition-all touch-manipulation cursor-pointer"
               id="header-ai-advisor-btn"
               title="Consultar Asesor IA Textil"
             >
@@ -136,7 +266,7 @@ export const Header: React.FC<HeaderProps> = ({
             {canManageCycles && (
               <button
                 onClick={onOpenSimulator}
-                className={`hidden md:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors touch-manipulation ${
+                className={`hidden md:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors touch-manipulation cursor-pointer ${
                   cycleConfig.scenarioMultiplier !== 1.0
                     ? 'bg-[#FDF8EE] text-[#82530C] border-[#F7E4BF]'
                     : 'bg-white hover:bg-[#FAF8F5] text-[#1C211D] border-[#E6E1D8]'
@@ -152,7 +282,7 @@ export const Header: React.FC<HeaderProps> = ({
             {canViewPOs && (
               <button
                 onClick={onOpenPOModal}
-                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white hover:bg-[#FAF8F5] active:scale-95 text-[#1C211D] text-xs font-medium border border-[#E6E1D8] transition-all touch-manipulation"
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white hover:bg-[#FAF8F5] active:scale-95 text-[#1C211D] text-xs font-medium border border-[#E6E1D8] transition-all touch-manipulation cursor-pointer"
                 id="header-pos-btn"
                 title="Gestión de Órdenes de Compra"
               >
@@ -165,7 +295,7 @@ export const Header: React.FC<HeaderProps> = ({
             {canImportCSV && (
               <button
                 onClick={onOpenCSVModal}
-                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white hover:bg-[#FAF8F5] text-[#1C211D] text-xs font-medium border border-[#E6E1D8] transition-colors"
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white hover:bg-[#FAF8F5] text-[#1C211D] text-xs font-medium border border-[#E6E1D8] transition-colors cursor-pointer"
                 id="header-csv-hub-btn"
                 title="Centro de Importación y Exportación CSV"
               >
@@ -177,8 +307,8 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Reset Demo Data Button */}
             <button
               onClick={onResetDemoData}
-              title="Restaurar datos demo"
-              className="p-1.5 rounded-lg bg-white hover:bg-[#FAF8F5] active:scale-95 text-[#5F6B61] hover:text-[#1C211D] border border-[#E6E1D8] transition-all touch-manipulation"
+              title="Restaurar datos de empresa activa"
+              className="p-1.5 rounded-lg bg-white hover:bg-[#FAF8F5] active:scale-95 text-[#5F6B61] hover:text-[#1C211D] border border-[#E6E1D8] transition-all touch-manipulation cursor-pointer"
               id="header-reset-demo-btn"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -189,7 +319,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-1.5 sm:gap-2 p-1 sm:pl-2 sm:pr-2.5 sm:py-1 rounded-xl border border-[#E6E1D8] hover:border-[#D5CEC2] bg-[#FAF8F5] hover:bg-white active:scale-95 transition-all shadow-2xs group touch-manipulation"
+                  className="flex items-center gap-1.5 sm:gap-2 p-1 sm:pl-2 sm:pr-2.5 sm:py-1 rounded-xl border border-[#E6E1D8] hover:border-[#D5CEC2] bg-[#FAF8F5] hover:bg-white active:scale-95 transition-all shadow-2xs group touch-manipulation cursor-pointer"
                   id="header-user-profile-btn"
                 >
                   <div
@@ -267,16 +397,27 @@ export const Header: React.FC<HeaderProps> = ({
 
                       {/* Menu Actions */}
                       <div className="space-y-1 text-xs">
+                        <button
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            onOpenCompanyManager();
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#FAF8F5] text-[#1C211D] font-bold flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <Building className="w-4 h-4 text-[#3A5A40]" />
+                          Gestión de Empresas & Sedes
+                        </button>
+
                         {canManageUsers && (
                           <button
                             onClick={() => {
                               setIsUserMenuOpen(false);
                               onOpenUserManagementModal();
                             }}
-                            className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[#EBF2EC] text-[#233829] font-bold flex items-center gap-2.5 transition-colors"
+                            className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#EBF2EC] text-[#233829] font-bold flex items-center gap-2.5 transition-colors cursor-pointer"
                           >
                             <Users className="w-4 h-4 text-[#3A5A40]" />
-                            Gestión de Personal & Permisos
+                            Personal & Control de Acceso
                           </button>
                         )}
 
@@ -286,23 +427,10 @@ export const Header: React.FC<HeaderProps> = ({
                               setIsUserMenuOpen(false);
                               onOpenCSVModal();
                             }}
-                            className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#FAF8F5] text-[#1C211D] font-semibold flex items-center gap-2.5 transition-colors lg:hidden"
+                            className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#FAF8F5] text-[#1C211D] font-semibold flex items-center gap-2.5 transition-colors lg:hidden cursor-pointer"
                           >
                             <Upload className="w-4 h-4 text-[#3A5A40]" />
                             Centro de Datos CSV
-                          </button>
-                        )}
-
-                        {canManageCycles && (
-                          <button
-                            onClick={() => {
-                              setIsUserMenuOpen(false);
-                              onOpenSimulator();
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#FAF8F5] text-[#1C211D] font-semibold flex items-center gap-2.5 transition-colors md:hidden"
-                          >
-                            <Sliders className="w-4 h-4 text-[#3A5A40]" />
-                            Simulador What-If
                           </button>
                         )}
 
@@ -311,7 +439,7 @@ export const Header: React.FC<HeaderProps> = ({
                             setIsUserMenuOpen(false);
                             onOpenLoginModal();
                           }}
-                          className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[#FAF8F5] text-[#1C211D] font-semibold flex items-center gap-2.5 transition-colors border-t border-[#F2EEE6] mt-1 pt-2"
+                          className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[#FAF8F5] text-[#1C211D] font-semibold flex items-center gap-2.5 transition-colors border-t border-[#F2EEE6] mt-1 pt-2 cursor-pointer"
                         >
                           <Key className="w-4 h-4 text-[#5F6B61]" />
                           Cambiar de Usuario / Iniciar Sesión
@@ -326,7 +454,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-1.5 rounded-lg border border-[#E6E1D8] text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5] md:hidden transition-colors"
+              className="p-1.5 rounded-lg border border-[#E6E1D8] text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5] md:hidden transition-colors cursor-pointer"
               aria-label="Abrir menú de navegación"
             >
               {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -340,7 +468,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Dashboard */}
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === 'dashboard'
                   ? 'bg-[#EBF2EC] text-[#233829] font-bold shadow-2xs'
                   : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
@@ -357,7 +485,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Explosión MRP */}
             <button
               onClick={() => setActiveTab('mrp_calculator')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === 'mrp_calculator'
                   ? 'bg-[#EBF2EC] text-[#233829] font-bold shadow-2xs'
                   : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
@@ -380,7 +508,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Fichas Técnicas (BOM) */}
             <button
               onClick={() => setActiveTab('fichas_tecnicas')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === 'fichas_tecnicas'
                   ? 'bg-[#EBF2EC] text-[#233829] font-bold shadow-2xs'
                   : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
@@ -397,7 +525,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Metas & Ciclos */}
             <button
               onClick={() => setActiveTab('metas_ventas')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === 'metas_ventas'
                   ? 'bg-[#EBF2EC] text-[#233829] font-bold shadow-2xs'
                   : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
@@ -414,7 +542,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Inventario Insumos */}
             <button
               onClick={() => setActiveTab('inventario_materiales')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === 'inventario_materiales'
                   ? 'bg-[#EBF2EC] text-[#233829] font-bold shadow-2xs'
                   : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
@@ -431,7 +559,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Ejecución en Planta & Analítica Temporal (MES) */}
             <button
               onClick={() => setActiveTab('execution')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === 'execution'
                   ? 'bg-[#EBF2EC] text-[#233829] font-bold shadow-2xs'
                   : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
@@ -439,7 +567,7 @@ export const Header: React.FC<HeaderProps> = ({
               id="nav-tab-execution"
             >
               <Factory className="w-3.5 h-3.5" />
-              <span>Ejecución & Trazabilidad</span>
+              <span>Ejecución en Planta</span>
               <span className="flex h-2 w-2 relative ml-0.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
@@ -448,34 +576,51 @@ export const Header: React.FC<HeaderProps> = ({
                 <Lock className="w-3 h-3 text-[#8F9990]" />
               )}
             </button>
+
+            {/* Comparativo Inter-Empresas & Benchmarking */}
+            <button
+              onClick={() => setActiveTab('benchmark')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
+                activeTab === 'benchmark'
+                  ? 'bg-[#EBF2EC] text-[#233829] font-bold shadow-2xs ring-1 ring-[#C8DEC9]'
+                  : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
+              }`}
+              id="nav-tab-benchmark"
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-[#1E40AF]" />
+              <span>Comparativo & Benchmark</span>
+              <span className="px-1.5 py-0.2 bg-[#FAF8F5] border border-[#E6E1D8] text-[9px] font-bold rounded-full text-[#4A544C]">
+                {companies.length}
+              </span>
+            </button>
           </nav>
         </div>
 
-        {/* Mobile Dropdown Navigation Drawer (When hamburger toggled on small screens) */}
+        {/* Mobile Dropdown Navigation Drawer */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-[#E6E1D8] py-3 space-y-2 animate-in slide-in-from-top-2 duration-150">
-            {/* Quick Cycle Info on Mobile */}
+            {/* Quick Company Info on Mobile */}
             <div className="p-2.5 bg-[#FAF8F5] rounded-xl border border-[#E6E1D8] flex items-center justify-between text-xs mb-2">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-[#3A5A40]" />
-                <div>
-                  <p className="font-bold text-[#1C211D] leading-none">
-                    {cycleConfig.durationMonths} Meses • {seasonInfo.name}
+              <div className="flex items-center gap-2 min-w-0 pr-2">
+                <Building className="w-4 h-4 text-[#3A5A40] shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-bold text-[#1C211D] truncate leading-none">
+                    {activeCompany.name}
                   </p>
-                  <p className="text-[10px] text-[#5F6B61] mt-0.5">{seasonInfo.dates}</p>
+                  <p className="text-[10px] text-[#5F6B61] mt-0.5 truncate font-mono">
+                    NIT: {activeCompany.nit} • {activeCompany.specialty}
+                  </p>
                 </div>
               </div>
-              {canManageCycles && (
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    onOpenCycleModal();
-                  }}
-                  className="px-2 py-1 bg-white border border-[#D5CEC2] rounded-lg text-[10px] font-bold text-[#3A5A40]"
-                >
-                  Cambiar
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onOpenCompanyManager();
+                }}
+                className="px-2 py-1 bg-white border border-[#D5CEC2] rounded-lg text-[10px] font-bold text-[#3A5A40] shrink-0 cursor-pointer"
+              >
+                Cambiar
+              </button>
             </div>
 
             {/* Mobile Nav Links */}
@@ -565,29 +710,40 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <span className="flex items-center gap-2.5">
                   <Factory className="w-4 h-4 text-[#3A5A40]" />
-                  Ejecución en Planta & Analítica Temporal
+                  Ejecución en Planta & Analítica
                 </span>
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+              </button>
+
+              <button
+                onClick={() => handleNavClick('benchmark')}
+                className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-colors ${
+                  activeTab === 'benchmark'
+                    ? 'bg-[#EBF2EC] text-[#233829]'
+                    : 'text-[#5F6B61] hover:bg-[#FAF8F5]'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <BarChart3 className="w-4 h-4 text-[#1E40AF]" />
+                  Comparativo Inter-Empresas
+                </span>
+                <span className="px-2 py-0.5 bg-[#FAF8F5] border border-[#E6E1D8] text-[10px] font-bold rounded-full">
+                  {companies.length} sedes
                 </span>
               </button>
             </div>
 
             {/* Extra Mobile Actions */}
             <div className="pt-2 border-t border-[#E6E1D8] flex items-center gap-2">
-              {canManageCycles && (
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    onOpenSimulator();
-                  }}
-                  className="flex-1 py-2 bg-white border border-[#D5CEC2] rounded-lg text-xs font-bold text-[#1C211D] flex items-center justify-center gap-1.5"
-                >
-                  <Sliders className="w-3.5 h-3.5 text-[#3A5A40]" />
-                  Simulador
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onOpenCompanyManager();
+                }}
+                className="flex-1 py-2 bg-white border border-[#D5CEC2] rounded-lg text-xs font-bold text-[#1C211D] flex items-center justify-center gap-1.5"
+              >
+                <Building className="w-3.5 h-3.5 text-[#3A5A40]" />
+                Empresas
+              </button>
               {canImportCSV && (
                 <button
                   onClick={() => {
@@ -607,3 +763,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+
