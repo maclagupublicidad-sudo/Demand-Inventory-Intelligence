@@ -797,8 +797,9 @@ export function parseBOMCSV(
         column: 'SKU_Materia_Prima',
         value: matSku,
         severity: 'warning',
-        issue: `Insumo "${matSku}" no existía en el inventario`,
-        suggestion: 'Se creará automáticamente con costo estimado base $10.000 COP.',
+        issue: `Insumo "${matSku}" no estaba previamente en el inventario`,
+        suggestion:
+          'Se creará automáticamente con costo estimado base $10.000 COP. Recomendación: cargue primero el archivo "1. Materias Primas" para heredar costos y proveedores reales.',
       });
     }
 

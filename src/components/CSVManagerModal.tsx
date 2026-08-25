@@ -88,7 +88,7 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; column: string; value: string } | null>(null);
 
   // Handler for reading and parsing uploaded CSV text files
-  const processUploadedFile = (name: string, content: string) => {
+  const processUploadedFile = (name: string, content: string, customMaterialsList?: RawMaterial[]) => {
     setNotification(null);
     const firstLine = content.split('\n')[0] || '';
     const headers = firstLine.split(/[,;\t]/).map((h) => h.replace(/^["']|["']$/g, '').trim());
@@ -96,64 +96,130 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
 
     let detectedName = '';
 
-    if (detectedType === 'ventas') {
-      const res = parseSalesCSV(content, name);
-      setSalesResult(res);
-      setActivePreviewTab('ventas');
-      detectedName = 'Ventas Históricas';
-    } else if (detectedType === 'materias_primas') {
+    if (detectedType === 'materias_primas') {
       const res = parseRawMaterialsCSV(content, name);
       setMaterialsResult(res);
       setActivePreviewTab('materias_primas');
-      detectedName = 'Inventario de Materias Primas';
+      detectedName = '1. Inventario de Materias Primas';
+      return res;
     } else if (detectedType === 'fichas_tecnicas') {
-      const baseMatList = materialsResult?.data && materialsResult.data.length > 0 ? materialsResult.data : rawMaterials;
+      const baseMatList =
+        customMaterialsList && customMaterialsList.length > 0
+          ? customMaterialsList
+          : materialsResult?.data && materialsResult.data.length > 0
+          ? materialsResult.data
+          : rawMaterials;
       const res = parseBOMCSV(content, baseMatList, name);
       setBOMResult(res);
       setActivePreviewTab('fichas_tecnicas');
-      detectedName = 'Fichas Técnicas (BOM)';
+      detectedName = '2. Fichas Técnicas (BOM)';
+      return res;
+    } else if (detectedType === 'ventas') {
+      const res = parseSalesCSV(content, name);
+      setSalesResult(res);
+      setActivePreviewTab('ventas');
+      detectedName = '3. Ventas Históricas';
+      return res;
     } else {
-      // Fallback: test against all parsers and pick the one with most valid data
-      const sRes = parseSalesCSV(content, name);
+      // Fallback: test against all parsers with prioritization
       const mRes = parseRawMaterialsCSV(content, name);
-      const bRes = parseBOMCSV(content, rawMaterials, name);
+      const bRes = parseBOMCSV(content, customMaterialsList || rawMaterials, name);
+      const sRes = parseSalesCSV(content, name);
 
-      if (sRes.validCount >= mRes.validCount && sRes.validCount >= bRes.validCount && sRes.validCount > 0) {
-        setSalesResult(sRes);
-        setActivePreviewTab('ventas');
-        detectedName = 'Ventas Históricas';
-      } else if (mRes.validCount >= bRes.validCount && mRes.validCount > 0) {
+      if (mRes.validCount >= bRes.validCount && mRes.validCount >= sRes.validCount && mRes.validCount > 0) {
         setMaterialsResult(mRes);
         setActivePreviewTab('materias_primas');
-        detectedName = 'Inventario de Materias Primas';
-      } else if (bRes.validCount > 0) {
+        detectedName = '1. Inventario de Materias Primas';
+        return mRes;
+      } else if (bRes.validCount >= sRes.validCount && bRes.validCount > 0) {
         setBOMResult(bRes);
         setActivePreviewTab('fichas_tecnicas');
-        detectedName = 'Fichas Técnicas (BOM)';
+        detectedName = '2. Fichas Técnicas (BOM)';
+        return bRes;
+      } else if (sRes.validCount > 0) {
+        setSalesResult(sRes);
+        setActivePreviewTab('ventas');
+        detectedName = '3. Ventas Históricas';
+        return sRes;
       } else {
         setNotification({
           type: 'error',
           message: `No se pudieron reconocer las columnas del archivo "${name}". Asegúrese de incluir las cabeceras estándar descargando las plantillas.`,
         });
-        return;
+        return null;
+      }
+    }
+  };
+
+  // Process multiple files in the optimal sequential dependency order: 1. Materias Primas -> 2. Fichas Técnicas -> 3. Ventas
+  const processBatchFiles = (fileList: Array<{ name: string; content: string }>) => {
+    const classified = fileList.map((f) => {
+      const firstLine = f.content.split('\n')[0] || '';
+      const headers = firstLine.split(/[,;\t]/).map((h) => h.replace(/^["']|["']$/g, '').trim());
+      const detectedType = detectCSVType(headers);
+      return { ...f, detectedType };
+    });
+
+    const priorityOrder: Record<string, number> = {
+      materias_primas: 1,
+      fichas_tecnicas: 2,
+      ventas: 3,
+      desconocido: 4,
+    };
+    classified.sort((a, b) => (priorityOrder[a.detectedType] || 99) - (priorityOrder[b.detectedType] || 99));
+
+    let accumulatedMaterials = materialsResult?.data && materialsResult.data.length > 0 ? materialsResult.data : rawMaterials;
+    const loadedSummary: string[] = [];
+
+    for (const item of classified) {
+      if (item.detectedType === 'materias_primas') {
+        const res = parseRawMaterialsCSV(item.content, item.name);
+        setMaterialsResult(res);
+        accumulatedMaterials = res.data;
+        loadedSummary.push(`1. Materias Primas (${res.validCount})`);
+      } else if (item.detectedType === 'fichas_tecnicas') {
+        const res = parseBOMCSV(item.content, accumulatedMaterials, item.name);
+        setBOMResult(res);
+        loadedSummary.push(`2. BOM (${res.validCount})`);
+      } else if (item.detectedType === 'ventas') {
+        const res = parseSalesCSV(item.content, item.name);
+        setSalesResult(res);
+        loadedSummary.push(`3. Ventas (${res.validCount})`);
+      } else {
+        processUploadedFile(item.name, item.content, accumulatedMaterials);
       }
     }
 
-    setNotification({
-      type: 'success',
-      message: `✓ Archivo cargado y validado como "${detectedName}". Pase al Paso 2 para revisar el diagnóstico.`,
-    });
+    if (loadedSummary.length > 0) {
+      setNotification({
+        type: 'success',
+        message: `✓ Archivos procesados en orden recomendado: ${loadedSummary.join(' ➔ ')}. Continúe al Paso 2 para revisar.`,
+      });
+    }
   };
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    Array.from(files).forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const content = (event.target?.result as string) || '';
-        processUploadedFile(file.name, content);
-      };
-      reader.readAsText(file);
+    const fileArray = Array.from(files);
+    const readPromises = fileArray.map((file) => {
+      return new Promise<{ name: string; content: string }>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          resolve({
+            name: file.name,
+            content: (event.target?.result as string) || '',
+          });
+        };
+        reader.readAsText(file);
+      });
+    });
+
+    Promise.all(readPromises).then((batch) => {
+      if (batch.length === 1) {
+        processUploadedFile(batch[0].name, batch[0].content);
+      } else {
+        processBatchFiles(batch);
+      }
     });
   };
 
@@ -178,20 +244,9 @@ export const CSVManagerModal: React.FC<CSVManagerModalProps> = ({
     handleFiles(e.dataTransfer.files);
   };
 
-  // Load realistic sample datasets with 1 click
-  const loadDemoData = (type: 'ventas' | 'materias_primas' | 'fichas_tecnicas') => {
-    if (type === 'ventas') {
-      const sampleSales = `Fecha_Venta,SKU_Prenda,Nombre_Prenda,Unidades_Vendidas,Canal,Ingreso_Total_COP
-2026-01-15,CAM-OXF-001,Camisa Oxford Manga Larga,180,Tienda Principal,$14400000
-2026-01-18,JEA-DEN-002,Jean Clásico Denim 14oz,220,E-Commerce,$26400000
-2026-01-22,POL-PIQ-003,Polo Piqué Algodón Premium,150,Mayoristas,$8250000
-2026-01-28,VES-LIN-004,Vestido Casual Lino Midi,95,Boutique Exclusiva,$11400000
-2026-02-05,CHA-BOM-005,Chaqueta Bomber Impermeable,80,Tienda Principal,$14400000
-2026-02-12,CAM-OXF-001,Camisa Oxford Manga Larga,210,E-Commerce,$16800000
-2026-02-20,JEA-DEN-002,Jean Clásico Denim 14oz,240,Tienda Principal,$28800000`;
-      processUploadedFile('Ventas_Reales_2026.csv', sampleSales);
-    } else if (type === 'materias_primas') {
-      const sampleMats = `SKU,Nombre,Categoria,Unidad,Stock_Actual,En_Transito,Stock_Seguridad_Dias,MOQ_Lote_Minimo,Lead_Time_Dias,Costo_Unitario_COP,Proveedor,Color,Ancho_Metros,Gramaje_GSM
+  // Load realistic sample datasets with 1 click in recommended order
+  const loadDemoData = (type: 'materias_primas' | 'fichas_tecnicas' | 'ventas' | 'all') => {
+    const sampleMats = `SKU,Nombre,Categoria,Unidad,Stock_Actual,En_Transito,Stock_Seguridad_Dias,MOQ_Lote_Minimo,Lead_Time_Dias,Costo_Unitario_COP,Proveedor,Color,Ancho_Metros,Gramaje_GSM
 TEL-OXF-BLA,Tela Oxford 100% Algodón Blanco,Tela,m,350,150,15,100,7,18500,Lafayette S.A.,Blanco Óptico,1.50,140
 TEL-DEN-AZU,Denim Índigo Pesado 14oz,Tela,m,520,300,20,150,12,24000,Fabricato Textil,Azul Índigo,1.60,400
 TEL-PIQ-NAV,Tejido Piqué 24/1 Algodón/Poliéster,Tela,kg,180,80,15,50,5,32000,Hilazas de Colombia,Azul Marino,1.80,220
@@ -205,9 +260,8 @@ REM-MET-JEAN,Remache de Cobre Bolsillo Jean,Avío / Fornitura,unidades,3200,1500
 CRE-MET-15CM,Cremallera Metálica Cobre 15cm Jean,Cremallera,unidades,450,200,15,100,5,1850,YKK Colombia,Cobre / Índigo,0,0
 ETI-SAT-CON,Etiqueta Satín Instrucciones Cuidado,Empaque / Etiqueta,unidades,4200,2000,15,1000,4,120,Marquillas Gráficas,Blanco/Negro,0,0
 ENT-FUS-75G,Entretela Tejida Termofusible Cuello,Entretela,m,110,60,15,50,4,8200,Pasacintas Colombia,Blanco,0.90,75`;
-      processUploadedFile('Inventario_Materias_Primas_2026.csv', sampleMats);
-    } else if (type === 'fichas_tecnicas') {
-      const sampleBOM = `SKU_Prenda,Nombre_Prenda,SKU_Insumo,Nombre_Insumo,Cantidad_Por_Prenda,Merma_Corte_Porcentaje,Unidad,Costo_Unitario_COP,Proveedor,PVP_Venta_COP,SAM_Minutos
+
+    const sampleBOM = `SKU_Prenda,Nombre_Prenda,SKU_Insumo,Nombre_Insumo,Cantidad_Por_Prenda,Merma_Corte_Porcentaje,Unidad,Costo_Unitario_COP,Proveedor,PVP_Venta_COP,SAM_Minutos
 CAM-OXF-001,Camisa Oxford Manga Larga,TEL-OXF-BLA,Tela Oxford 100% Algodón Blanco,1.65,6.0,m,18500,Lafayette S.A.,85000,24.5
 CAM-OXF-001,Camisa Oxford Manga Larga,HIL-BLA-120,Hilo Poliéster 120 TKT Blanco,0.02,3.0,conos,6800,Coats Cadena,85000,24.5
 CAM-OXF-001,Camisa Oxford Manga Larga,BOT-NAC-18L,Botón Nácar 4 Huecos 18L,8.0,2.0,unidades,180,Pasacintas Colombia,85000,24.5
@@ -219,7 +273,28 @@ JEA-DEN-002,Jean Clásico Denim 14oz,CRE-MET-15CM,Cremallera Metálica Cobre 15c
 JEA-DEN-002,Jean Clásico Denim 14oz,BOT-MET-JEAN,Botón Metálico Remache Jean 24L,1.0,1.0,unidades,350,Cierres Andinos,120000,28.0
 JEA-DEN-002,Jean Clásico Denim 14oz,REM-MET-JEAN,Remache de Cobre Bolsillo Jean,6.0,2.0,unidades,90,Cierres Andinos,120000,28.0
 JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones Cuidado,1.0,1.0,unidades,120,Marquillas Gráficas,120000,28.0`;
-      processUploadedFile('Fichas_Tecnicas_BOM_2026.csv', sampleBOM);
+
+    const sampleSales = `Fecha_Venta,SKU_Prenda,Nombre_Prenda,Unidades_Vendidas,Canal,Ingreso_Total_COP
+2026-01-15,CAM-OXF-001,Camisa Oxford Manga Larga,180,Tienda Principal,$14400000
+2026-01-18,JEA-DEN-002,Jean Clásico Denim 14oz,220,E-Commerce,$26400000
+2026-01-22,POL-PIQ-003,Polo Piqué Algodón Premium,150,Mayoristas,$8250000
+2026-01-28,VES-LIN-004,Vestido Casual Lino Midi,95,Boutique Exclusiva,$11400000
+2026-02-05,CHA-BOM-005,Chaqueta Bomber Impermeable,80,Tienda Principal,$14400000
+2026-02-12,CAM-OXF-001,Camisa Oxford Manga Larga,210,E-Commerce,$16800000
+2026-02-20,JEA-DEN-002,Jean Clásico Denim 14oz,240,Tienda Principal,$28800000`;
+
+    if (type === 'all') {
+      processBatchFiles([
+        { name: '1_Inventario_Materias_Primas.csv', content: sampleMats },
+        { name: '2_Fichas_Tecnicas_BOM.csv', content: sampleBOM },
+        { name: '3_Ventas_Historicas.csv', content: sampleSales },
+      ]);
+    } else if (type === 'materias_primas') {
+      processUploadedFile('1_Inventario_Materias_Primas.csv', sampleMats);
+    } else if (type === 'fichas_tecnicas') {
+      processUploadedFile('2_Fichas_Tecnicas_BOM.csv', sampleBOM);
+    } else if (type === 'ventas') {
+      processUploadedFile('3_Ventas_Historicas.csv', sampleSales);
     }
   };
 
@@ -471,6 +546,76 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
           {/* ========================================================= */}
           {currentStep === 1 && (
             <div className="space-y-5">
+              {/* ORDEN RECOMENDADO DE CARGA BANNER */}
+              <div className="p-4 bg-gradient-to-r from-[#FAF8F5] via-[#FCFBF9] to-[#EBF2EC] rounded-2xl border border-[#D5CEC2] shadow-2xs">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-[#3A5A40] text-white flex items-center justify-center text-xs font-bold shadow-2xs">
+                      123
+                    </div>
+                    <h4 className="text-xs sm:text-sm font-bold text-[#1C211D]">
+                      Orden Recomendado de Carga de Archivos
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-semibold text-[#3A5A40] bg-white px-2.5 py-0.5 rounded-full border border-[#D4E3D7]">
+                    Secuencia para Cero Advertencias
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#5F6B61] mb-3">
+                  Para garantizar la integridad total de los cálculos MRP y costos de producción, cargue sus archivos en esta secuencia:
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                  {/* Sequence Step 1 */}
+                  <div className="p-3 bg-white/90 rounded-xl border border-[#E6E1D8] flex items-start gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-[#3A5A40] text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                      1
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-[#1C211D]">
+                        <Package className="w-3.5 h-3.5 text-[#3A5A40]" />
+                        <span>1. Materias Primas</span>
+                      </div>
+                      <p className="text-[10px] text-[#5F6B61] mt-0.5 leading-tight">
+                        Crea el catálogo base de telas, hilos y avíos con costos reales COP, MOQ, stock y proveedores.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Sequence Step 2 */}
+                  <div className="p-3 bg-white/90 rounded-xl border border-[#E6E1D8] flex items-start gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-[#3A5A40] text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                      2
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-[#1C211D]">
+                        <Layers className="w-3.5 h-3.5 text-[#3A5A40]" />
+                        <span>2. Fichas Técnicas (BOM)</span>
+                      </div>
+                      <p className="text-[10px] text-[#5F6B61] mt-0.5 leading-tight">
+                        Enlaza los insumos a las prendas con consumos unitarios, mermas de corte y tiempos SAM.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Sequence Step 3 */}
+                  <div className="p-3 bg-white/90 rounded-xl border border-[#E6E1D8] flex items-start gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-[#3A5A40] text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                      3
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-[#1C211D]">
+                        <ShoppingBag className="w-3.5 h-3.5 text-[#3A5A40]" />
+                        <span>3. Ventas & Demanda</span>
+                      </div>
+                      <p className="text-[10px] text-[#5F6B61] mt-0.5 leading-tight">
+                        Define la demanda histórica o metas de confección para disparar la explosión de materiales MRP.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Drag & Drop Hero Box */}
               <div
                 onDragOver={handleDragOver}
@@ -500,7 +645,7 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                   Arrastre y suelte sus archivos CSV aquí, o haga clic para explorar
                 </h4>
                 <p className="text-xs text-[#5F6B61] mt-1 max-w-md mx-auto">
-                  El sistema detecta automáticamente si el archivo corresponde a <strong>Ventas</strong>, <strong>Materias Primas</strong> o <strong>Fichas Técnicas (BOM)</strong>.
+                  Puede soltar varios archivos a la vez: el sistema los ordenará y procesará automáticamente respetando la secuencia <strong>Materias Primas ➔ BOM ➔ Ventas</strong>.
                 </p>
 
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -511,37 +656,30 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                     ✓ Comas y Puntos Decimales
                   </span>
                   <span className="px-2.5 py-1 bg-white border border-[#E6E1D8] text-[#5F6B61] rounded-lg text-[10px] font-semibold">
-                    ⚡ Auto-Detección de Columnas
+                    ⚡ Auto-Detección y Ordenamiento Secuencial
                   </span>
                 </div>
               </div>
 
-              {/* One-Click Sample Datasets */}
+              {/* One-Click Sample Datasets in Recommended Order */}
               <div className="p-4 bg-[#FAF8F5] rounded-xl border border-[#E6E1D8] space-y-2.5">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-[#3A5A40]" />
                     <span className="font-bold text-xs text-[#1C211D]">
                       ¿Desea probar de inmediato con datos reales de confección colombiana?
                     </span>
                   </div>
-                  <span className="text-[10px] text-[#5F6B61]">Carga de prueba instantánea</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => loadDemoData('ventas')}
-                    className="p-2.5 bg-white hover:bg-[#EBF2EC] border border-[#D5CEC2] rounded-xl text-left transition-colors flex items-center gap-2 group cursor-pointer"
+                    onClick={() => loadDemoData('all')}
+                    className="px-2.5 py-1 bg-[#3A5A40] text-white hover:bg-[#2D4632] rounded-lg text-[11px] font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
                   >
-                    <ShoppingBag className="w-4 h-4 text-[#3A5A40] shrink-0" />
-                    <div>
-                      <p className="font-bold text-[11px] text-[#1C211D] group-hover:text-[#3A5A40]">
-                        1. Ventas de Muestra
-                      </p>
-                      <p className="text-[10px] text-[#5F6B61]">Camisas, Jeans, Polos, Vestidos</p>
-                    </div>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Cargar los 3 Archivos en Orden (Demo Completa)
                   </button>
-
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => loadDemoData('materias_primas')}
@@ -550,7 +688,7 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                     <Package className="w-4 h-4 text-[#3A5A40] shrink-0" />
                     <div>
                       <p className="font-bold text-[11px] text-[#1C211D] group-hover:text-[#3A5A40]">
-                        2. Inventario de Muestra
+                        1. Materias Primas de Muestra
                       </p>
                       <p className="text-[10px] text-[#5F6B61]">Telas, Hilos, Botones, MOQ, Lead Time</p>
                     </div>
@@ -564,84 +702,36 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                     <Layers className="w-4 h-4 text-[#3A5A40] shrink-0" />
                     <div>
                       <p className="font-bold text-[11px] text-[#1C211D] group-hover:text-[#3A5A40]">
-                        3. BOM de Muestra
+                        2. BOM de Muestra
                       </p>
                       <p className="text-[10px] text-[#5F6B61]">Consumos unitarios y mermas de corte</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => loadDemoData('ventas')}
+                    className="p-2.5 bg-white hover:bg-[#EBF2EC] border border-[#D5CEC2] rounded-xl text-left transition-colors flex items-center gap-2 group cursor-pointer"
+                  >
+                    <ShoppingBag className="w-4 h-4 text-[#3A5A40] shrink-0" />
+                    <div>
+                      <p className="font-bold text-[11px] text-[#1C211D] group-hover:text-[#3A5A40]">
+                        3. Ventas de Muestra
+                      </p>
+                      <p className="text-[10px] text-[#5F6B61]">Camisas, Jeans, Polos, Vestidos</p>
                     </div>
                   </button>
                 </div>
               </div>
 
-              {/* Status of Staged Datasets & Template Download */}
+              {/* Status of Staged Datasets & Template Download in 1-2-3 Order */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#5F6B61] mb-2.5">
-                  Estado de Archivos Cargados & Descarga de Plantillas
+                  Estado de Archivos Cargados & Descarga de Plantillas (Secuencia 1-2-3)
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {/* Card 1: Ventas */}
-                  <div
-                    className={`p-4 rounded-xl border transition-all ${
-                      salesResult
-                        ? salesResult.errorCount > 0
-                          ? 'bg-rose-50/70 border-rose-300'
-                          : 'bg-[#EBF2EC] border-[#3A5A40]'
-                        : 'bg-white border-[#E6E1D8]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`p-1.5 rounded-lg ${
-                            salesResult ? 'bg-[#3A5A40] text-white' : 'bg-stone-100 text-stone-600'
-                          }`}
-                        >
-                          <ShoppingBag className="w-4 h-4" />
-                        </div>
-                        <span className="font-bold text-xs text-[#1C211D]">1. Ventas Históricas</span>
-                      </div>
-                      {salesResult ? (
-                        <span
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            salesResult.errorCount > 0
-                              ? 'bg-rose-200 text-rose-900'
-                              : 'bg-emerald-200 text-emerald-900'
-                          }`}
-                        >
-                          {salesResult.validCount} válidas
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-[#8F9990]">{salesRecords.length} en memoria</span>
-                      )}
-                    </div>
-
-                    <p className="text-[11px] text-[#5F6B61] leading-relaxed">
-                      {salesResult
-                        ? `Archivo: ${salesResult.fileName} (${salesResult.totalRows} filas leídas)`
-                        : 'Fechas, SKU de prendas, unidades vendidas, canales e ingresos.'}
-                    </p>
-
-                    <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center justify-between text-[11px]">
-                      <button
-                        onClick={() => downloadCSVTemplate('ventas')}
-                        className="text-[#3A5A40] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
-                      >
-                        <Download className="w-3 h-3" />
-                        Plantilla
-                      </button>
-                      {salesResult && (
-                        <button
-                          onClick={() => setSalesResult(null)}
-                          className="text-[#B33927] hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          Quitar
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Card 2: Materias Primas */}
+                  {/* Card 1: Materias Primas */}
                   <div
                     className={`p-4 rounded-xl border transition-all ${
                       materialsResult
@@ -660,7 +750,10 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                         >
                           <Package className="w-4 h-4" />
                         </div>
-                        <span className="font-bold text-xs text-[#1C211D]">2. Materias Primas</span>
+                        <div>
+                          <span className="font-bold text-xs text-[#1C211D] block">1. Materias Primas</span>
+                          <span className="text-[9px] text-[#3A5A40] font-semibold">Recomendado 1º</span>
+                        </div>
                       </div>
                       {materialsResult ? (
                         <span
@@ -703,7 +796,7 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                     </div>
                   </div>
 
-                  {/* Card 3: Fichas Técnicas BOM */}
+                  {/* Card 2: Fichas Técnicas BOM */}
                   <div
                     className={`p-4 rounded-xl border transition-all ${
                       bomResult
@@ -722,7 +815,10 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                         >
                           <Layers className="w-4 h-4" />
                         </div>
-                        <span className="font-bold text-xs text-[#1C211D]">3. Fichas Técnicas (BOM)</span>
+                        <div>
+                          <span className="font-bold text-xs text-[#1C211D] block">2. Fichas Técnicas (BOM)</span>
+                          <span className="text-[9px] text-[#3A5A40] font-semibold">Recomendado 2º</span>
+                        </div>
                       </div>
                       {bomResult ? (
                         <span
@@ -764,6 +860,71 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                       )}
                     </div>
                   </div>
+
+                  {/* Card 3: Ventas */}
+                  <div
+                    className={`p-4 rounded-xl border transition-all ${
+                      salesResult
+                        ? salesResult.errorCount > 0
+                          ? 'bg-rose-50/70 border-rose-300'
+                          : 'bg-[#EBF2EC] border-[#3A5A40]'
+                        : 'bg-white border-[#E6E1D8]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`p-1.5 rounded-lg ${
+                            salesResult ? 'bg-[#3A5A40] text-white' : 'bg-stone-100 text-stone-600'
+                          }`}
+                        >
+                          <ShoppingBag className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-xs text-[#1C211D] block">3. Ventas Históricas</span>
+                          <span className="text-[9px] text-[#3A5A40] font-semibold">Recomendado 3º</span>
+                        </div>
+                      </div>
+                      {salesResult ? (
+                        <span
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                            salesResult.errorCount > 0
+                              ? 'bg-rose-200 text-rose-900'
+                              : 'bg-emerald-200 text-emerald-900'
+                          }`}
+                        >
+                          {salesResult.validCount} válidas
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-[#8F9990]">{salesRecords.length} en memoria</span>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] text-[#5F6B61] leading-relaxed">
+                      {salesResult
+                        ? `Archivo: ${salesResult.fileName} (${salesResult.totalRows} filas leídas)`
+                        : 'Fechas, SKU de prendas, unidades vendidas, canales e ingresos.'}
+                    </p>
+
+                    <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center justify-between text-[11px]">
+                      <button
+                        onClick={() => downloadCSVTemplate('ventas')}
+                        className="text-[#3A5A40] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Download className="w-3 h-3" />
+                        Plantilla
+                      </button>
+                      {salesResult && (
+                        <button
+                          onClick={() => setSalesResult(null)}
+                          className="text-[#B33927] hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Quitar
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -774,32 +935,9 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
           {/* ========================================================= */}
           {currentStep === 2 && (
             <div className="space-y-4">
-              {/* Dataset Tab Selector */}
+              {/* Dataset Tab Selector in Recommended Order (1. Materias Primas -> 2. BOM -> 3. Ventas) */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E6E1D8] pb-3">
                 <div className="flex items-center gap-2">
-                  {salesResult && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActivePreviewTab('ventas');
-                        setSelectedIssueDetail(null);
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-                        activePreviewTab === 'ventas'
-                          ? 'bg-[#3A5A40] text-white shadow-2xs'
-                          : 'bg-stone-100 text-[#5F6B61] hover:bg-stone-200'
-                      }`}
-                    >
-                      <ShoppingBag className="w-3.5 h-3.5" />
-                      <span>Ventas ({salesResult.validCount})</span>
-                      {salesResult.errorCount > 0 && (
-                        <span className="px-1.5 py-0.2 bg-rose-500 text-white text-[10px] rounded-full">
-                          {salesResult.errorCount}
-                        </span>
-                      )}
-                    </button>
-                  )}
-
                   {materialsResult && (
                     <button
                       type="button"
@@ -814,7 +952,7 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                       }`}
                     >
                       <Package className="w-3.5 h-3.5" />
-                      <span>Materias Primas ({materialsResult.validCount})</span>
+                      <span>1. Materias Primas ({materialsResult.validCount})</span>
                       {materialsResult.errorCount > 0 && (
                         <span className="px-1.5 py-0.2 bg-rose-500 text-white text-[10px] rounded-full">
                           {materialsResult.errorCount}
@@ -837,10 +975,33 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                       }`}
                     >
                       <Layers className="w-3.5 h-3.5" />
-                      <span>Fichas Técnicas ({bomResult.validCount})</span>
+                      <span>2. Fichas Técnicas ({bomResult.validCount})</span>
                       {bomResult.errorCount > 0 && (
                         <span className="px-1.5 py-0.2 bg-rose-500 text-white text-[10px] rounded-full">
                           {bomResult.errorCount}
+                        </span>
+                      )}
+                    </button>
+                  )}
+
+                  {salesResult && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActivePreviewTab('ventas');
+                        setSelectedIssueDetail(null);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                        activePreviewTab === 'ventas'
+                          ? 'bg-[#3A5A40] text-white shadow-2xs'
+                          : 'bg-stone-100 text-[#5F6B61] hover:bg-stone-200'
+                      }`}
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      <span>3. Ventas ({salesResult.validCount})</span>
+                      {salesResult.errorCount > 0 && (
+                        <span className="px-1.5 py-0.2 bg-rose-500 text-white text-[10px] rounded-full">
+                          {salesResult.errorCount}
                         </span>
                       )}
                     </button>

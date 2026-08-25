@@ -127,8 +127,37 @@
 - **Asesor IA**: Recomendaciones estratégicas impulsadas por Gemini API para mitigar cuellos de botella y optimizar compras.
 
 ### 13. Centro de Datos CSV & Exportación PDF
-- **Importación/Exportación CSV**: Soporte de Ventas, Insumos y Fichas Técnicas con plantillas descargables.
+- **Importación/Exportación CSV**: Soporte de Ventas, Insumos y Fichas Técnicas con plantillas descargables y asistente paso a paso con previsualización editable.
+- **Flujo Secuencial Inteligente (1 ➔ 2 ➔ 3)**: El sistema incluye detección automática de orden de dependencias para garantizar consistencia relacional y cálculo de costos sin advertencias.
 - **Exportación Tech Pack PDF**: Documentos técnicos formales con formato listo para impresión y entrega a talleres satélites.
+
+---
+
+## 📑 Guía de Importación CSV y Secuencia Recomendada
+
+Para garantizar la integridad total de los cálculos MRP, costeo de prendas y evitar advertencias de insumos no encontrados, se recomienda seguir el siguiente **flujo de carga secuencial**:
+
+```
+ ┌───────────────────────────┐      ┌───────────────────────────┐      ┌───────────────────────────┐
+ │   1. MATERIAS PRIMAS      │ ───> │ 2. FICHAS TÉCNICAS (BOM)  │ ───> │  3. VENTAS / DEMANDA      │
+ │ (Telas, Hilos, Botones)   │      │ (Consumos, Mermas, SAM)   │      │ (Metas por Colección)     │
+ └───────────────────────────┘      └───────────────────────────┘      └───────────────────────────┘
+```
+
+### ¿Por qué seguir este orden?
+
+1. **Paso 1 — Materias Primas (`1_Inventario_Materias_Primas.csv`)**:
+   - Establece el catálogo maestro con **costo unitario real en COP**, lote mínimo de compra (**MOQ**), tiempo de entrega (**Lead Time**), **Stock Actual** y proveedor.
+   - Permite que el sistema reconozca cada SKU de insumo antes de que sea referenciado en una prenda.
+
+2. **Paso 2 — Fichas Técnicas (`2_Fichas_Tecnicas_BOM.csv`)**:
+   - Enlaza cada prenda con sus insumos requeridos, consumos unitarios y % de merma de corte.
+   - Si las materias primas ya están cargadas, la ficha técnica hereda automáticamente los costos y proveedores oficiales, evitando advertencias de *insumos no registrados*.
+
+3. **Paso 3 — Ventas Históricas / Metas (`3_Ventas_Historicas.csv`)**:
+   - Define el volumen de prendas que alimentará el motor de cálculo MRP y la explosión de materiales para el ciclo.
+
+> 💡 **Carga Múltiple Simultánea**: Si arrastra los 3 archivos a la vez en el modal, el motor de TEXORA los ordenará y procesará automáticamente en la secuencia ideal (Materias Primas ➔ BOM ➔ Ventas).
 
 ---
 
