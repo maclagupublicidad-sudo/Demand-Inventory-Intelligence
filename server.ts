@@ -160,7 +160,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`TextilIQ Server running on http://0.0.0.0:${PORT}`);
+    console.log(`TEXORA Server running on http://0.0.0.0:${PORT}`);
   });
 }
 

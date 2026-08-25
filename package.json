@@ -1,7 +1,8 @@
 {
-  "name": "react-example",
+  "name": "texora",
+  "version": "1.0.0",
+  "description": "TEXORA - Inteligencia para la producción textil. Planifica. Compra. Produce. Controla.",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",

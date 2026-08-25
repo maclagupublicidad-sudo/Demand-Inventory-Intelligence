@@ -1,39 +1,44 @@
-# 🧵 TextilIQ Demand & MRP — Intelligence & Production Management Platform
+# 🧵 TEXORA — Inteligencia para la producción textil
 
-> **Plataforma Integral de Inteligencia de Demanda, Cálculo MRP, Fichas Técnicas (BOM/SAM), Costeo Taller vs. Maquila y Control de Accesos por Roles (RBAC) para la Industria de Confección Textil.**
+> **Planifica. Compra. Produce. Controla.**  
+> Plataforma integral Multi-Empresa de Inteligencia de Demanda, Cálculo MRP de Confección, Fichas Técnicas (BOM/SAM/QC), Costeo Taller vs. Maquila, Ejecución en Planta (MES), Benchmarking Inter-Empresas y Control de Accesos por Roles (RBAC).
 
 ---
 
 ## 📋 Tabla de Contenido
 
-1. [Visión General del Sistema](#-visión-general-del-sistema)
+1. [Visión General](#-visión-general)
 2. [Arquitectura Tecnológica & Stack](#-arquitectura-tecnológica--stack)
 3. [Módulos & Funcionalidades Principales](#-módulos--funcionalidades-principales)
-   - [1. Dashboard Ejecutivo & Centro de Alertas](#1-dashboard-ejecutivo--centro-de-alertas)
-   - [2. Proyección de Demanda & Estacionalidad Dinámica](#2-proyección-de-demanda--estacionalidad-dinámica)
-   - [3. Fichas Técnicas (Tech Packs), BOM & Tiempos SAM](#3-fichas-técnicas-tech-packs-bom--tiempos-sam)
-   - [4. Simulador de Costeo: Taller Propio vs. Maquila Satélite](#4-simulador-de-costeo-taller-propio-vs-maquila-satélite)
-   - [5. Motor de Cálculo MRP (Material Requirements Planning)](#5-motor-de-cálculo-mrp-material-requirements-planning)
-   - [6. Gestión de Órdenes de Compra & Abastecimiento](#6-gestión-de-órdenes-de-compra--abastecimiento)
-   - [7. Sistema de Control de Acceso por Roles (RBAC)](#7-sistema-de-control-de-acceso-por-roles-rbac)
-   - [8. Simulador de Escenarios "What-If" & Asistente IA](#8-simulador-de-escenarios-what-if--asistente-ia)
-   - [9. Integración CSV Bidireccional & Exportación PDF](#9-integración-csv-bidireccional--exportación-pdf)
-4. [Estructura del Proyecto y Detalle de Archivos](#-estructura-del-proyecto-y-detalle-de-archivos)
+   - [1. Modo Onboarding Limpio & Multi-Empresa](#1-modo-onboarding-limpio--multi-empresa)
+   - [2. Dashboard Ejecutivo & Centro de Alertas](#2-dashboard-ejecutivo--centro-de-alertas)
+   - [3. Proyección de Demanda & Estacionalidad Textil](#3-proyección-de-demanda--estacionalidad-textil)
+   - [4. Fichas Técnicas (Tech Packs), BOM & Tiempos SAM](#4-fichas-técnicas-tech-packs-bom--tiempos-sam)
+   - [5. Simulador de Costeo: Taller Propio vs. Maquila Satélite](#5-simulador-de-costeo-taller-propio-vs-maquila-satélite)
+   - [6. Motor de Cálculo MRP (Material Requirements Planning)](#6-motor-de-cálculo-mrp-material-requirements-planning)
+   - [7. Ejecución en Planta & Control de Piso (MES)](#7-ejecución-en-planta--control-de-piso-mes)
+   - [8. Benchmarking Comparativo Inter-Empresas](#8-benchmarking-comparativo-inter-empresas)
+   - [9. Gestión de Órdenes de Compra & Abastecimiento](#9-gestión-de-órdenes-de-compra--abastecimiento)
+   - [10. Demo Interactiva & Guía de Botones](#10-demo-interactiva--guía-de-botones)
+   - [11. Control de Acceso por Roles (RBAC)](#11-control-de-acceso-por-roles-rbac)
+   - [12. Simulador "What-If" & Asesor IA Gemini](#12-simulador-what-if--asesor-ia-gemini)
+   - [13. Centro de Datos CSV & Exportación PDF](#13-centro-de-datos-csv--exportación-pdf)
+4. [Estructura del Proyecto](#-estructura-del-proyecto)
 5. [Cuentas de Usuario y Matriz de Permisos](#-cuentas-de-usuario-y-matriz-de-permisos)
 6. [Modelos Matemáticos y Fórmulas del Motor](#-modelos-matemáticos-y-fórmulas-del-motor)
-7. [Instalación, Ejecución & Despliegue](#-instalación-ejecución--despliegue)
-8. [Configuración de Entorno](#-configuración-de-entorno)
+7. [Instalación, Ejecución & Despliegue en GitHub](#-instalación-ejecución--despliegue-en-github)
+8. [Variables de Entorno](#-variables-de-entorno)
 
 ---
 
-## 🚀 Visión General del Sistema
+## 🚀 Visión General
 
-**TextilIQ** resuelve los desafíos críticos de la cadena de suministro y manufactura en empresas de confección:
-- **Quiebres de stock** de materias primas críticas (telas principales, sesgos, botones, cremalleras).
-- **Sobrecostos y mermas descontroladas** en procesos de tizado y corte.
-- **Incertidumbre en costos de fabricación**, permitiendo simular en tiempo real la rentabilidad entre confección en **taller interno** versus tercerización en **talleres satélites (maquila)**.
-- **Falta de trazabilidad técnica**, centralizando fichas de diseño, rutas operacionales con tiempos estándar (SAM), matriz de prevención de defectos y puntos de control de calidad (QC).
-- **Descoordinación interdepartamental**, aplicando un control de acceso por roles (RBAC) donde cada área (Comercial, Ingeniería, Compras, Producción, Calidad, Gerencia) opera con permisos específicos y credenciales individuales.
+**TEXORA** es la solución tecnológica diseñada para resolver los desafíos más críticos en la cadena de confección y manufactura textil:
+
+- **Planifica**: Proyecta la demanda por colecciones y temporadas comerciales, calculando lotes óptimos con amortiguadores de estacionalidad.
+- **Compra**: Motor MRP determinístico que calcula consumos netos de rollos de tela, forros, avíos e hilos, ajustando automáticamente al Lote Mínimo de Compra (MOQ) y emitiendo órdenes de compra agrupadas.
+- **Produce**: Gestión integral de Fichas Técnicas (BOM), tiempos estándar de confección (SAM), rutas de costura por maquinaria y órdenes de producción (OP) en piso de planta con auditoría de mermas en tiempo real.
+- **Controla**: Comparativas de rentabilidad (Taller Interno vs. Maquila Satélite), control de calidad (QC) con tolerancias milimétricas, benchmarking comparativo y seguridad granular basada en roles (RBAC).
 
 ---
 
@@ -41,202 +46,167 @@
 
 | Capa | Tecnología | Descripción |
 | :--- | :--- | :--- |
-| **Frontend Framework** | `React 19` + `TypeScript 5.8` | Componentes funcionales, hooks estrictos y tipado integral |
-| **Build & Dev Server** | `Vite 6` + `TSX` + `Esbuild` | Empaquetado rápido, SSR/HMR proxy y bundling CommonJS (`dist/server.cjs`) |
-| **Backend & Servidor** | `Express 4.21` (Node.js) | Enrutador API, middleware SPA y aislamiento de secretos |
-| **Estilos & Diseño** | `Tailwind CSS 4` | Paleta minimalista y productiva en **Blanco Marfil** (`#FAF8F5`, `#FCFBF9`), bordes sutiles y acentos en **Verde Seco Textil** (`#3A5A40`, `#2D4632`) |
+| **Frontend Framework** | `React 19` + `TypeScript 5.8` | Componentes funcionales modulares, hooks reactivos y tipado estricto |
+| **Build & Dev Server** | `Vite 6` + `TSX` + `Esbuild` | Empaquetado optimizado, SSR/HMR proxy y bundling CommonJS (`dist/server.cjs`) |
+| **Backend & Servidor** | `Express 4.21` (Node.js) | Enrutador API `/api/*`, middleware SPA y aislamiento de secretos de API |
+| **Estilos & Diseño** | `Tailwind CSS 4` | Paleta sobria en **Blanco Marfil** (`#FAF8F5`), neutros de alto contraste y acentos en **Verde Seco Textil** (`#3A5A40`, `#2D4632`) |
 | **Animaciones & UI** | `Motion (Framer Motion 12)` | Transiciones fluidas, modales contextuales y micro-interacciones |
 | **Iconografía** | `Lucide React` | Iconos vectoriales semánticos y accesibles |
 | **Generación Documental** | `jsPDF` | Generación e impresión de Fichas Técnicas (Tech Packs) en formato PDF |
-| **Procesamiento de Datos** | `PapaParse` | Parser y serializador de archivos CSV con validación y auto-mapeo |
-| **Inteligencia Artificial** | `@google/genai` | Asesor experto en optimización de compras y balance de producción textil |
-| **Formato Monetario** | `COP ($ Pesos Colombianos)` | Adaptado a la estructura de costos y compras de la industria nacional |
+| **Procesamiento de Datos** | `PapaParse` | Parser y serializador bidireccional de archivos CSV con validación y auto-mapeo |
+| **Inteligencia Artificial** | `@google/genai` (Gemini 3.7 Flash) | Asesor experto en optimización de compras, mermas de tizado y balance de producción textil |
+| **Ecosistema Monetario** | `COP ($ Pesos Colombianos)` | Adaptado a la estructura de costos y compras de la industria textil |
 
 ---
 
 ## 📦 Módulos & Funcionalidades Principales
 
-### 1. Dashboard Ejecutivo & Centro de Alertas
-- **Métricas Clave en Tiempo Real**: Total de prendas proyectadas en el ciclo, inversión requerida en materias primas (COP), ítems en estado crítico de desabastecimiento y disponibilidad de inventario.
-- **Tarjetas de Estado del Inventario**: Segmentación automática en 4 estados operativos:
+### 1. Modo Onboarding Limpio & Multi-Empresa
+- **Registro de Empresa Limpio**: Permite registrar una nueva empresa textil desde cero con 0 datos de prueba residuales, configurando Razón Social, Marca, NIT, Ciudad, Especialidad, Color corporativo y Usuario Administrador.
+- **Selector y Administrador de Sedes**: Cambio instantáneo entre múltiples empresas registradas con aislamiento de datos en almacenamiento local.
+- **Modo Demo Disponible**: Opción de cargar empresas de muestra preconfiguradas para demostraciones o capacitación técnica.
+
+### 2. Dashboard Ejecutivo & Centro de Alertas
+- **Métricas en Tiempo Real**: Total de prendas proyectadas en el ciclo, inversión requerida en materias primas (COP), ítems en estado crítico de desabastecimiento y disponibilidad de inventario.
+- **Segmentación de Inventario**:
   - 🔴 **Crítico**: Stock insuficiente para cubrir la demanda del ciclo.
   - 🟡 **Punto de Reorden**: Inventario por debajo del umbral de seguridad + tiempo de entrega del proveedor (*Lead Time*).
   - 🟢 **Óptimo**: Niveles de existencias en rango adecuado.
   - 🔵 **Sobrestock**: Exceso de inventario inmovilizado.
-- **Top 5 Insumos con Mayor Inversión**: Desglose gráfico de los materiales que concentran el mayor presupuesto del ciclo.
+- **Top Insumos con Mayor Inversión**: Desglose gráfico de los materiales que concentran el mayor presupuesto del ciclo.
 
-### 2. Proyección de Demanda & Estacionalidad Comercial de Colombia
+### 3. Proyección de Demanda & Estacionalidad Textil
 - **Configuración de Ciclos**: Horizontes de planeación flexibles (1, 3, 6, 12 meses o duración personalizada en días).
-- **Selector de Temporadas Comerciales Adaptadas a Colombia**:
-  - 🎒 **Inicio de Año / Temporada Escolar** *(Enero - Febrero)*: Alta demanda de uniformes, camisería básica, pantalones escolares y dotaciones (+65% camisas y pantalones).
-  - 💐 **Día de la Mujer** *(Marzo)*: Repunte comercial en blusas, vestidos y tejido de punto liviano (+20% vestidos).
-  - 👑 **Día de la Madre** *(Mayo)*: Mayor pico de moda femenina, blusas de alta rotación, pantalones casuales y vestidos de diseño (+40% vestidos, +30% blusas).
-  - 👔 **Día del Padre** *(Junio)*: Fuerte incremento en camisería formal, polos, bermudas y chaquetas masculinas (+40% camisas, +25% chaquetas).
-  - ❤️ **Amor y Amistad** *(Septiembre)*: Colecciones de moda casual, vestidos de fiesta, prendas estampadas y dotaciones empresariales (+25% vestidos, +15% camisas).
-  - 🎄 **Fin de Año / Navidad** *(Noviembre - Diciembre)*: Temporada pico anual, estrenos, gala, lino, chaquetas y alta confección (+50% general).
-  - ⚙️ **Regular / Todo el Año**: Producción balanceada de línea básica y reposición continua.
+- **Selector de Temporadas Comerciales**:
+  - 🎒 **Temporada Escolar / Inicio de Año** *(Ene - Feb)*: Uniformes y camisería (+65% camisas y pantalones).
+  - 💐 **Día de la Mujer** *(Marzo)*: Blusas y vestidos (+20% vestidos).
+  - 👑 **Día de la Madre** *(Mayo)*: Mayor pico de moda femenina (+40% vestidos, +30% blusas).
+  - 👔 **Día del Padre** *(Junio)*: Camisería formal y chaquetas (+40% camisas, +25% chaquetas).
+  - ❤️ **Amor y Amistad** *(Septiembre)*: Moda casual y dotaciones (+25% vestidos, +15% camisas).
+  - 🎄 **Fin de Año / Navidad** *(Nov - Dic)*: Temporada alta general (+50% general).
+  - ⚙️ **Regular / Todo el Año**: Producción balanceada de reposición continua.
 - **Ajuste Masivo de Metas**: Multiplicadores porcentuales por categoría de prenda (+10%, +25%, -15%).
-- **Cálculo Automático Basado en Históricos**: Proyección basada en promedios históricos ajustados por tasa de crecimiento y estacionalidad.
 
-### 3. Fichas Técnicas (Tech Packs), BOM & Tiempos SAM
-- **Explosión de Estructura de Materiales (BOM - Bill of Materials)**:
-  - Registro de telas principales, forros, botones, cremalleras, hilos de costura, etiquetas y empaques.
-  - Consumo unitario con definición de **% de merma de corte específica por insumo**.
-- **Desglose de Tiempos de Fabricación (SAM)**:
-  - Minutos de Corte por prenda (*Min/Garment*).
-  - Minutos Estándar Permitidos de Confección (**Sewing SAM**).
-  - Minutos de Acabados, Ojalado, Botón, Plancha y Empaque.
-  - Cálculo de días totales de ciclo productivo y tamaño de lote estándar.
-- **Ruta Operacional de Confección**:
-  - Secuencia de operaciones numeradas paso a paso.
-  - Departamento (Corte, Preparación, Ensamble, Terminación, Empaque).
-  - Maquinaria requerida (Plana 1 Aguja, Overlock 4 Hilos, Cerradora de Codo, Fusionadora, Ojaladora, etc.).
-  - SAM por operación y notas técnicas críticas.
-- **Matriz de Control de Calidad & Prevención de Defectos (QC)**:
-  - Identificación de defectos potenciales por operación (ej: descalce de líneas, revirado de costura, descarrilamiento de pespunte).
-  - Instrucciones preventivas de calibración de guías y tensión de hilo.
-  - Métrica de tolerancia técnica (ej: `+/- 1.5mm`, `10-12 SPI`).
-  - Nivel de severidad (Alta, Media, Baja).
+### 4. Fichas Técnicas (Tech Packs), BOM & Tiempos SAM
+- **Estructura de Materiales (BOM)**: Registro de telas principales, forros, botones, cremalleras, hilos, etiquetas y empaques con % de merma de corte individual.
+- **Desglose de Tiempos de Fabricación (SAM)**: Minutos de corte, confección (*Sewing SAM*), ojalado, botón, plancha y empaque.
+- **Ruta Operacional de Confección**: Secuencia detallada de operaciones por maquinaria (Plana, Overlock, Cerradora de Codo, Fusionadora, etc.).
+- **Matriz de Calidad & Prevención de Defectos (QC)**: Chequeo de tolerancias milimétricas y puntos críticos de inspección.
 
-### 4. Simulador de Costeo: Taller Propio vs. Maquila Satélite
-- **Costeo Integral de Producción**:
-  - Costo de materia prima directa (telas + avíos calculados dinámicamente según el BOM).
-  - **Taller Interno**: Mano de Obra Directa (MOD) según SAM y tarifa por minuto + Costos Indirectos de Fabricación (CIF / Minuto).
-  - **Maquila Externa**: Tarifas satélite de corte, confección por ensamble, acabados/plancha y fletes logísticos.
-- **Comparativa Financiera**:
-  - Visualización lado a lado de Costo Unitario Interno vs. Costo Maquila.
-  - Margen de ganancia bruto proyectado en cada escenario frente al Precio de Venta Sugerido (PVP).
-  - Recomendación automática del modelo de fabricación más rentable según el volumen del lote.
+### 5. Simulador de Costeo: Taller Propio vs. Maquila Satélite
+- **Costeo Integral**: Materia prima directa (telas + avíos del BOM).
+- **Taller Interno**: Mano de Obra Directa (MOD) según SAM y tarifa por minuto + Costos Indirectos de Fabricación (CIF / Minuto).
+- **Maquila Externa**: Tarifas satélite de corte, ensamble, terminación y fletes.
+- **Comparativa Financiera**: Visualización de costo unitario y margen bruto proyectado frente al PVP.
 
-### 5. Motor de Cálculo MRP (Material Requirements Planning)
-- **Cálculo de Requerimiento Bruto Efectivo**:
-  $$\text{Consumo Efectivo} = \sum (\text{Demanda Prenda} \times \text{Consumo BOM} \times (1 + \text{Merma}))$$
-- **Evaluación de Inventario Disponible**:
-  $$\text{Stock Disponible} = \text{Stock Físico Actual} + \text{Stock en Tránsito}$$
-- **Stock de Seguridad Dinámico**: Calculado en función de los días de cobertura requeridos y el consumo promedio diario.
-- **Cálculo de Requerimiento Neto & Sugerencia de Compra**:
-  - Identificación de déficit real.
-  - Redondeo y ajuste automático al **Lote Mínimo de Compra (MOQ - Minimum Order Quantity)** del proveedor.
-  - Cálculo de días de cobertura de inventario y costo total proyectado en COP.
+### 6. Motor de Cálculo MRP (Material Requirements Planning)
+- **Consumo Efectivo Bruto**: Suma de demanda por consumos unitarios ajustados por merma de corte.
+- **Stock de Seguridad Dinámico**: Basado en días de cobertura y consumo promedio diario.
+- **Requerimiento Neto & Sugerencia de Compra**: Ajuste automático al Lote Mínimo de Compra (MOQ) del proveedor y cálculo de costo proyectado en COP.
 
-### 6. Gestión de Órdenes de Compra & Abastecimiento
-- **Generación Automática desde MRP**: Convierte los insumos en déficit crítico en órdenes de compra agrupadas automáticamente por proveedor.
-- **Creación Manual de Órdenes**: Formulario intuitivo para emitir pedidos directos a proveedores con campos en COP, selección de fechas de entrega y condiciones de pago.
-- **Filtros por Estado Operativo**:
-  - `Borrador` → `Emitida` → `Confirmada` → `En Tránsito` → `Recibida` → `Cancelada`.
-- **Recepción de Mercancía**: Al marcar una orden como `Recibida`, el sistema actualiza automáticamente las existencias en el inventario maestro.
+### 7. Ejecución en Planta & Control de Piso (MES)
+- **Órdenes de Producción (OP)**: Emisión, asignación de taller y seguimiento de avance en tiempo real.
+- **Registro por Etapas**: Corte, Confección/Ensamble, Lavandería/Tintorería, Terminación y Empaque.
+- **Auditoría de Mermas**: Comparación de unidades cortadas vs. unidades de primera calidad producidas.
 
-### 7. Sistema de Control de Acceso por Roles (RBAC)
-- **Autenticación con Usuario y Clave Única**: Cada usuario ingresa con sus credenciales y se almacena la última fecha/hora de sesión.
-- **6 Cuentas Preconfiguradas para Cada Área de la Empresa**:
-  - 👑 **Administrador General / Dirección**: Control total sin restricciones.
-  - 📈 **Comercial & Ventas**: Acceso a histórico de ventas, metas y pronósticos.
-  - 🧵 **Ingeniería Textil & BOM**: Acceso a fichas técnicas, consumos, SAM y calidad.
-  - 📦 **Compras & Abastecimiento**: Acceso a MRP, inventarios y emisión de OCs.
-  - 🏭 **Jefe de Producción & Satélites**: Acceso a costeo de taller, balanceo y parámetros de ciclo.
-  - 🔍 **Auditor de Calidad (QC)**: Acceso a fichas técnicas y checkpoints de calidad.
-- **Panel de Administración de Usuarios**:
-  - Creación, edición y suspensión de usuarios.
-  - Matriz granular de **13 permisos independientes**.
-- **Pantalla de Protección Contextual (`AccessRestricted`)**: Bloqueo elegante con información del permiso necesario y atajo para cambio de usuario.
+### 8. Benchmarking Comparativo Inter-Empresas
+- **Comparativa de Rendimiento**: Métricas cruzadas de eficiencia de tizado, productividad SAM, costo promedio por prenda y rotación de inventarios entre empresas y sedes.
 
-### 8. Simulador de Escenarios "What-If" & Asistente IA
-- **Simulador What-If**:
-  - Variación de demanda general (multiplicador de 0.5x a 2.0x).
-  - Incremento o reducción de merma promedio de confección (1% a 20%).
-  - Días de colchón de seguridad (*Lead Time Buffer Days*).
-  - Recálculo instantáneo del presupuesto MRP sin alterar la base de datos principal hasta confirmación.
-- **Asistente de Inteligencia Textil**:
-  - Diagnóstico automatizado de la planeación.
-  - Detección de cuellos de botella en proveedores de tela con tiempos de entrega prolongados.
-  - Consejos de optimización de tizado y balanceo de líneas.
+### 9. Gestión de Órdenes de Compra & Abastecimiento
+- **Generación Automática**: Conversión de déficits de materiales en órdenes de compra agrupadas por proveedor.
+- **Recepción de Mercancía**: Al marcar como `Recibida`, el sistema actualiza automáticamente el inventario físico disponible.
 
-### 9. Integración CSV Bidireccional & Exportación PDF
-- **Importación Flexible**: Carga de archivos CSV con detección inteligente de columnas para Ventas, Materias Primas y Fichas Técnicas (BOM).
-- **Modos de Carga**: Modo Fusión (*Merge/Upsert*) o Reemplazo Completo (*Full Overwrite*).
-- **Descarga de Plantillas**: Plantillas CSV oficiales listas para diligenciar en Excel.
-- **Exportación de Fichas Técnicas a PDF**: Generación de documentos formales de Tech Pack listos para imprimir o entregar a los talleres satélites.
+### 10. Demo Interactiva & Guía de Botones
+- **Tour de Botones**: Guía explicativa con buscador integrado para conocer la función y ubicación de cada botón, modal y herramienta del sistema.
+
+### 11. Control de Acceso por Roles (RBAC)
+- **Autenticación Segura**: Múltiples roles preconfigurados (Administrador, Comercial, Ingeniería, Compras, Producción, Calidad) con matriz de 13 permisos granulares.
+
+### 12. Simulador "What-If" & Asesor IA Gemini
+- **Simulación Dinámica**: Variación de demanda, estrés de merma de corte y colchón de seguridad de proveedores.
+- **Asesor IA**: Recomendaciones estratégicas impulsadas por Gemini API para mitigar cuellos de botella y optimizar compras.
+
+### 13. Centro de Datos CSV & Exportación PDF
+- **Importación/Exportación CSV**: Soporte de Ventas, Insumos y Fichas Técnicas con plantillas descargables.
+- **Exportación Tech Pack PDF**: Documentos técnicos formales con formato listo para impresión y entrega a talleres satélites.
 
 ---
 
-## 📂 Estructura del Proyecto y Detalle de Archivos
+## 📂 Estructura del Proyecto
 
 ```
-├── .env.example                     # Variables de entorno documentadas del proyecto
-├── .gitignore                       # Configuración de exclusión de Git
-├── index.html                       # Documento HTML principal con fuentes tipográficas
-├── metadata.json                    # Metadatos del applet y configuración de permisos
-├── package.json                     # Manifiesto de dependencias, scripts de build y start
-├── server.ts                        # Servidor backend Express con middleware Vite y APIs
-├── tsconfig.json                    # Configuración estricta de compilación TypeScript
-├── vite.config.ts                   # Configuración del empaquetador Vite con plugin Tailwind
+texora/
+├── .env.example                     # Variables de entorno documentadas
+├── .gitignore                       # Exclusiones de Git
+├── index.html                       # Documento HTML principal
+├── metadata.json                    # Metadatos oficiales de TEXORA
+├── package.json                     # Scripts de npm, dependencias y build
+├── server.ts                        # Servidor Express y endpoints de IA
+├── tsconfig.json                    # Configuración TypeScript
+├── vite.config.ts                   # Configuración Vite + Tailwind CSS 4
 │
 └── src/
-    ├── main.tsx                     # Punto de entrada de React 19
-    ├── App.tsx                      # Componente raíz con orquestación de estado y vistas
-    ├── index.css                    # Estilos globales y directivas de Tailwind CSS
+    ├── main.tsx                     # Entry point de React
+    ├── App.tsx                      # Estado principal y orquestación de vistas
+    ├── index.css                    # Directivas de Tailwind CSS
     │
-    ├── components/                  # Componentes modulares de interfaz de usuario
-    │   ├── AccessRestricted.tsx     # Vista de acceso denegado por permisos insuficientes
-    │   ├── AIIntelligencePanel.tsx  # Panel modal con el Asistente IA de Abastecimiento
-    │   ├── BOMExplosionView.tsx     # Fichas Técnicas: BOM, Tiempos SAM, Routing, QC y Costeo
-    │   ├── CSVManagerModal.tsx      # Centro de importación y exportación de archivos CSV
-    │   ├── CycleControlBar.tsx      # Barra superior de parámetros de ciclo y temporadas
-    │   ├── CycleManagementModal.tsx # Modal de configuración avanzada del horizonte de producción
-    │   ├── DashboardOverview.tsx    # Panel ejecutivo con KPIs, estados de stock y gráficos
-    │   ├── DemandForecastingView.tsx# Vista de metas de venta, estacionalidad y proyecciones
-    │   ├── Header.tsx               # Cabecera principal con navegación y perfil de usuario activo
-    │   ├── LoginModal.tsx           # Modal de autenticación con credenciales y switch rápido
-    │   ├── MRPCalculatorTable.tsx   # Tabla maestra del cálculo de requerimientos de materiales
-    │   ├── NewGarmentModal.tsx      # Formulario para registrar nuevas prendas en el catálogo
-    │   ├── NewMaterialModal.tsx     # Formulario para registrar nuevas materias primas / telas
-    │   ├── PurchaseOrderModal.tsx   # Gestor de órdenes de compra, filtros y creación manual
-    │   ├── UserManagementModal.tsx  # Panel de administración de usuarios y matriz de permisos
-    │   └── WhatIfSimulator.tsx      # Simulador de escenarios de demanda y estrés de merma
+    ├── components/                  # Componentes modulares
+    │   ├── AccessRestricted.tsx     # Pantalla de acceso restringido RBAC
+    │   ├── AIIntelligencePanel.tsx  # Asesor de IA con Gemini
+    │   ├── BOMExplosionView.tsx     # Fichas Técnicas, BOM, SAM, QC y Costeo
+    │   ├── ButtonTourModal.tsx      # Demo interactiva y guía de botones
+    │   ├── CSVManagerModal.tsx      # Importador / Exportador CSV
+    │   ├── CompanyBenchmarkView.tsx # Benchmarking inter-empresas
+    │   ├── CompanyManagerModal.tsx  # Administrador de empresas y sedes
+    │   ├── CompanyOnboardingView.tsx# Registro de empresa en modo limpio
+    │   ├── CycleControlBar.tsx      # Barra de control de ciclo
+    │   ├── CycleManagementModal.tsx # Configuración de ciclo y temporadas
+    │   ├── DashboardOverview.tsx    # Dashboard principal con KPIs
+    │   ├── DemandForecastingView.tsx# Proyección de demanda y ventas
+    │   ├── GarmentModal.tsx         # Detalle y edición de prendas
+    │   ├── Header.tsx               # Barra superior con navegación y perfiles
+    │   ├── InventoryMovementModal.tsx# Ajustes manuales de inventario
+    │   ├── LoginModal.tsx           # Autenticación y cambio de usuario
+    │   ├── MRPCalculatorTable.tsx   # Tabla maestra del motor MRP
+    │   ├── MaterialModal.tsx        # Detalle y edición de materias primas
+    │   ├── NewGarmentModal.tsx      # Creación de nuevas prendas
+    │   ├── NewMaterialModal.tsx     # Creación de nuevos insumos
+    │   ├── NewProductionOrderModal.tsx # Emisión de órdenes de producción (OP)
+    │   ├── ProductionExecutionView.tsx # Módulo MES de control de piso
+    │   ├── PurchaseOrderModal.tsx   # Gestión de órdenes de compra
+    │   ├── RawMaterialsManager.tsx  # Catálogo maestro de insumos
+    │   ├── RecordStageModal.tsx     # Registro de avances y mermas por etapa
+    │   ├── UserManagementModal.tsx  # Gestión de usuarios y permisos RBAC
+    │   └── WhatIfSimulator.tsx      # Simulador de escenarios What-If
     │
-    ├── data/                        # Conjuntos de datos iniciales y mocks realistas
-    │   ├── mockData.ts              # Catálogo de prendas, telas, ventas históricas y órdenes
-    │   └── mockUsers.ts             # Usuarios predefinidos con claves y roles departamentales
-    │
-    ├── services/                    # Motores de lógica empresarial y procesamiento
-    │   ├── csvParser.ts             # Parser de archivos CSV con auto-detección y validación
-    │   ├── mrpEngine.ts             # Motor matemático de cálculo de requerimientos de materiales
-    │   └── pdfExporter.ts           # Motor de generación y maquetación de Tech Packs en PDF
-    │
-    ├── types/                       # Definiciones de tipos e interfaces TypeScript
-    │   └── index.ts                 # Interfaces para RawMaterial, Garment, BOM, MRP, RBAC, etc.
-    │
-    └── utils/                       # Funciones de utilidad y lógica auxiliar
-        ├── formatters.ts            # Formateadores monetarios en Pesos Colombianos (COP) y números
-        ├── permissions.ts           # Lógica de verificación RBAC (`hasPermission`) y roles
-        └── seasonality.ts           # Algoritmos de estacionalidad y curvas de demanda
+    ├── data/                        # Datos iniciales y mocks
+    ├── services/                    # Motores de cálculo MRP, CSV y PDF
+    ├── types/                       # Definiciones TypeScript
+    └── utils/                       # Formateadores, permisos y estacionalidad
 ```
 
 ---
 
 ## 👥 Cuentas de Usuario y Matriz de Permisos
 
-El sistema incluye las siguientes credenciales preconfiguradas para pruebas y operación:
-
-| Nombre | Usuario | Contraseña | Rol / Departamento | Permisos Asignados |
-| :--- | :--- | :--- | :--- | :--- |
-| **Carlos Mendoza** | `admin` | `admin123` | **Administrador General** *(Dirección)* | Acceso total a todos los módulos y configuración (13 permisos) |
-| **Valentina Restrepo** | `ventas` | `ventas123` | **Comercial & Ventas** *(Ventas)* | Dashboard, Vista de Demanda, Modificación de Metas, Exportar CSV |
-| **Andrés Morales** | `ingenieria` | `ingenieria123` | **Ingeniería Textil & BOM** *(Diseño)* | Fichas Técnicas, Edición de BOM, Tiempos SAM, QC, Ver Costeo |
-| **Mariana Giraldo** | `compras` | `compras123` | **Compras & Abastecimiento** *(Supply)* | Dashboard, MRP, Inventario de Insumos, Gestión de Órdenes de Compra |
-| **Héctor Fabio Vélez** | `produccion` | `produccion123` | **Jefe de Producción** *(Planta)* | Dashboard, Fichas Técnicas, Costeo Taller vs. Maquila, Parámetros Ciclo |
-| **Claudia Osorio** | `calidad` | `calidad123` | **Auditor de Calidad** *(QC)* | Dashboard, Fichas Técnicas (Lectura), Control de Calidad |
+| Usuario | Contraseña | Rol / Departamento | Permisos Principales |
+| :--- | :--- | :--- | :--- |
+| `admin` | `admin123` | **Administrador General** | Acceso total a todos los módulos y gestión de empresas |
+| `ventas` | `ventas123` | **Comercial & Ventas** | Demanda, metas de venta, proyecciones y exportación |
+| `ingenieria` | `ingenieria123` | **Ingeniería Textil & BOM** | Fichas técnicas, consumos, tiempos SAM y calidad |
+| `compras` | `compras123` | **Compras & Abastecimiento** | MRP, inventarios, emisión y recepción de órdenes de compra |
+| `produccion` | `produccion123` | **Jefe de Producción** | Ejecución en planta (MES), órdenes de producción y costeo |
+| `calidad` | `calidad123` | **Auditor de Calidad (QC)** | Fichas técnicas y puntos de control de calidad |
 
 ---
 
 ## 📐 Modelos Matemáticos y Fórmulas del Motor
 
-### 1. Cálculo de Requerimiento Bruto Efectivo ($RGB_i$)
-Para una materia prima $i$, considerando todas las prendas $j$ que la consumen en su BOM:
-$$RGB_i = \sum_{j=1}^{N} \left[ \text{Demanda Proyectada}_j \times \text{Consumo Unitario}_{i,j} \times \left(1 + \frac{\text{Merma}_{i,j} + \text{Merma Global}}{100}\right) \right]$$
+### 1. Consumo Bruto Efectivo ($RGB_i$)
+$$RGB_i = \sum_{j=1}^{N} \left[ \text{Demanda Prenda}_j \times \text{Consumo BOM}_{i,j} \times \left(1 + \frac{\text{Merma}_{i,j} + \text{Merma Global}}{100}\right) \right]$$
 
 ### 2. Stock de Seguridad Requerido ($SS_i$)
-$$SS_i = \left( \frac{RGB_i}{\text{Días del Ciclo}} \right) \times (\text{Días Stock Seguridad}_i + \text{Colchón Buffer})$$
+$$SS_i = \left( \frac{RGB_i}{\text{Días del Ciclo}} \right) \times (\text{Días Stock Seguridad}_i + \text{Buffer})$$
 
 ### 3. Requerimiento Neto de Compra ($RN_i$)
 $$\text{Stock Disponible}_i = \text{Stock Físico}_i + \text{Stock en Tránsito}_i$$
@@ -249,67 +219,65 @@ $$SC_i = \begin{cases}
 \left\lceil \frac{RN_i}{\text{MOQ}_i} \right\rceil \times \text{MOQ}_i & \text{si } RN_i > \text{MOQ}_i 
 \end{cases}$$
 
-### 5. Costeo de Mano de Obra Directa (MOD) & CIF
-$$\text{SAM Total} = \text{Minutos Corte} + \text{SAM Confección} + \text{Minutos Acabados}$$
-$$\text{Costo MOD Interno} = \text{SAM Total} \times \text{Tarifa Minuto Planta (COP)}$$
-$$\text{Costo CIF Interno} = \text{SAM Total} \times \text{Tarifa Indirectos (COP)}$$
-$$\text{Costo Unitario Taller} = \text{Costo Insumos BOM} + \text{Costo MOD Interno} + \text{Costo CIF Interno}$$
-
 ---
 
-## 💻 Instalación, Ejecución & Despliegue
+## 💻 Instalación, Ejecución & Despliegue en GitHub
 
-### Requisitos Previos
-- **Node.js**: Versión 18.x o superior.
-- **npm** o **bun** instalado.
+### Requisitos
+- **Node.js**: Versión 18.x, 20.x o 22.x
+- **npm** o **bun**
 
-### 1. Clonar el repositorio e instalar dependencias
+### 1. Clonar el repositorio
 ```bash
-git clone <URL_DEL_REPOSITORIO>
-cd textiliq-demand-mrp
+git clone https://github.com/tu-usuario/texora.git
+cd texora
+```
+
+### 2. Instalar dependencias
+```bash
 npm install
 ```
 
-### 2. Ejecutar en modo desarrollo
+### 3. Iniciar el servidor de desarrollo
 ```bash
 npm run dev
 ```
-La aplicación estará disponible de forma inmediata en `http://localhost:3000`.
+Abre tu navegador en `http://localhost:3000`.
 
-### 3. Validación y verificación de código (Linter)
+### 4. Validar código con TypeScript
 ```bash
 npm run lint
 ```
 
-### 4. Compilación para producción
+### 5. Compilar para producción
 ```bash
 npm run build
 ```
-Este comando compilará el frontend estático con Vite en `/dist` y generará el servidor backend optimizado y empaquetado en `/dist/server.cjs`.
+Este comando genera:
+- Los archivos web estáticos optimizados en `dist/`.
+- El servidor backend compilado y empaquetado en `dist/server.cjs`.
 
-### 5. Iniciar en entorno de producción
+### 6. Ejecutar en producción
 ```bash
 npm run start
 ```
 
 ---
 
-## 🔒 Configuración de Entorno
+## 🔒 Variables de Entorno
 
-Cree un archivo `.env` en la raíz del proyecto tomando como base `.env.example`:
+Configura tu archivo `.env` en la raíz del proyecto (basado en `.env.example`):
 
 ```env
-# Puerto del servidor (obligatorio 3000 en el entorno de contenedores)
-PORT=3000
-
-# Clave de API de Gemini para el Asistente Inteligente Textil
+# Clave de API de Google Gemini para el asistente inteligente
 GEMINI_API_KEY=tu_clave_de_gemini_aqui
-```
 
-> **Nota de Seguridad**: La variable `GEMINI_API_KEY` se procesa exclusivamente en el backend (`server.ts`) y **nunca** se expone al navegador web del cliente.
+# Puerto del servidor (3000 por defecto)
+PORT=3000
+```
 
 ---
 
-## 📄 Licencia & Créditos
+## 📄 Licencia
 
-Desarrollado para la industria textil y de confección como una solución integral de planeación de producción, costeo y control de inventarios. Todos los derechos reservados. 🧵🇨🇴
+Desarrollado para la industria textil y de confección como una plataforma integral de planeación de producción, costeo y control de inventarios. Todos los derechos reservados. 🧵🇨🇴
