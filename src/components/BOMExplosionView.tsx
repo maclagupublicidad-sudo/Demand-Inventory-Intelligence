@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { formatCOP } from '../utils/formatters';
 import { exportGarmentTechPackPDF } from '../services/pdfExporter';
+import { TechTermTooltip } from './TechTermTooltip';
 
 interface BOMExplosionViewProps {
   garments: Garment[];
@@ -82,6 +83,9 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
   const [newMaterialQty, setNewMaterialQty] = useState<number>(0.85);
   const [newMaterialWaste, setNewMaterialWaste] = useState<number>(5);
   const [newMaterialNotes, setNewMaterialNotes] = useState<string>('');
+
+  // Batch Requirement Simulation State (1, 10, 100, 500, N garments)
+  const [batchSimQty, setBatchSimQty] = useState<number>(100);
 
   // New Operation state
   const [newOpName, setNewOpName] = useState('');
@@ -816,9 +820,11 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
                     <thead className="bg-[#FAF8F5] text-[10px] font-bold uppercase text-[#5F6B61] border-b border-[#E6E1D8]">
                       <tr>
                         <th className="px-4 py-3">Insumo / Materia Prima</th>
-                        <th className="px-4 py-3">Categoría</th>
+                        <th className="px-4 py-3">Categoría & Unidad</th>
                         <th className="px-4 py-3 text-right">Consumo por Prenda</th>
-                        <th className="px-4 py-3 text-right">Merma (%)</th>
+                        <th className="px-4 py-3 text-right">
+                          <TechTermTooltip termKey="merma">Merma (%)</TechTermTooltip>
+                        </th>
                         <th className="px-4 py-3 text-right">Consumo Real (Bruto)</th>
                         <th className="px-4 py-3 text-right">Costo Unit. Insumo</th>
                         <th className="px-4 py-3 text-right">Costo Componente</th>
@@ -842,15 +848,27 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
                           const unitCost = mat?.unitCost || 0;
                           const effectiveQty = item.quantityPerGarment * (1 + item.wastePercent / 100);
                           const itemCost = effectiveQty * unitCost;
+                          const hasYield = Boolean(
+                            mat && ((mat.yieldFactor && mat.yieldFactor !== 1.0) || (mat.purchaseUnit && mat.usageUnit && mat.purchaseUnit !== mat.usageUnit))
+                          );
+                          const pUnit = mat?.purchaseUnit || mat?.unit || item.unit;
+                          const uUnit = mat?.usageUnit || item.unit;
+                          const yFactor = mat?.yieldFactor || 1.0;
+                          const equivPurchase = hasYield && yFactor > 0 ? (effectiveQty / yFactor).toFixed(4) : null;
 
                           return (
                             <tr key={idx} className="hover:bg-[#FAF8F5] transition-colors">
                               <td className="px-4 py-3">
                                 <div className="font-bold text-[#1C211D]">{item.rawMaterialName}</div>
-                                <div className="text-[10px] text-[#5F6B61] font-mono">
-                                  {mat?.sku || item.rawMaterialId}
-                                  {item.notes && <span className="ml-1 text-[#8F9990]">({item.notes})</span>}
+                                <div className="text-[10px] text-[#5F6B61] font-mono flex items-center gap-1.5 mt-0.5">
+                                  <span>{mat?.sku || item.rawMaterialId}</span>
+                                  {hasYield && (
+                                    <span className="bg-[#EBF2EC] text-[#3A5A40] px-1.5 py-0.2 rounded text-[9px] font-bold">
+                                      1 {pUnit} = {yFactor} {uUnit}
+                                    </span>
+                                  )}
                                 </div>
+                                {item.notes && <div className="text-[10px] text-[#8F9990]">{item.notes}</div>}
                               </td>
 
                               <td className="px-4 py-3">
@@ -897,8 +915,15 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
                               </td>
 
                               {/* Effective Gross Consumption */}
-                              <td className="px-4 py-3 text-right font-mono font-semibold text-[#1C211D]">
-                                {effectiveQty.toFixed(3)} {item.unit}
+                              <td className="px-4 py-3 text-right font-mono">
+                                <div className="font-semibold text-[#1C211D]">
+                                  {effectiveQty.toFixed(3)} {item.unit}
+                                </div>
+                                {equivPurchase && (
+                                  <div className="text-[10px] text-[#3A5A40]">
+                                    ≈ {equivPurchase} {pUnit}
+                                  </div>
+                                )}
                               </td>
 
                               {/* Unit Cost of Material */}
@@ -915,7 +940,7 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
                               <td className="px-4 py-3 text-center">
                                 <button
                                   onClick={() => handleDeleteBOMItem(idx)}
-                                  className="p-1.5 text-[#8F9990] hover:text-[#B33927] rounded-lg transition-colors hover:bg-stone-100"
+                                  className="p-1.5 text-[#8F9990] hover:text-[#B33927] rounded-lg transition-colors hover:bg-stone-100 cursor-pointer"
                                   title="Eliminar insumo de la ficha técnica"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -927,6 +952,141 @@ export const BOMExplosionView: React.FC<BOMExplosionViewProps> = ({
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* ========================================================================= */}
+                {/* EXPLOSIÓN DE REQUERIMIENTOS POR LOTE DE PRODUCCIÓN (1, 10, 100, 500, ETC.) */}
+                {/* ========================================================================= */}
+                <div className="p-4 sm:p-5 bg-[#FCFBF9] border-t border-[#E6E1D8] space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-[#E6E1D8] shadow-2xs">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Scissors className="w-4 h-4 text-[#3A5A40]" />
+                        <h4 className="font-bold text-xs sm:text-sm text-[#1C211D]">
+                          Calculadora de Explosión de Consumos por Lote de Fabricación
+                        </h4>
+                      </div>
+                      <p className="text-[11px] text-[#5F6B61] mt-0.5">
+                        Vea exactamente cuánta materia prima e inventario físico necesita para confeccionar cualquier cantidad de prendas.
+                      </p>
+                    </div>
+
+                    {/* Batch Selector Buttons */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] font-bold text-[#5F6B61] mr-1">Calcular para:</span>
+                      {[1, 10, 50, 100, 500, 1000].map((qty) => (
+                        <button
+                          key={qty}
+                          type="button"
+                          onClick={() => setBatchSimQty(qty)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            batchSimQty === qty
+                              ? 'bg-[#3A5A40] text-white shadow-2xs'
+                              : 'bg-white border border-[#D5CEC2] text-[#1C211D] hover:bg-[#FAF8F5]'
+                          }`}
+                        >
+                          {qty.toLocaleString()} {qty === 1 ? 'prenda' : 'u'}
+                        </button>
+                      ))}
+                      <div className="flex items-center gap-1 ml-1">
+                        <input
+                          type="number"
+                          min="1"
+                          value={batchSimQty}
+                          onChange={(e) => setBatchSimQty(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-20 p-1 bg-white border border-[#3A5A40] rounded-lg text-xs font-bold text-center text-[#3A5A40]"
+                        />
+                        <span className="text-[10px] text-[#5F6B61] font-semibold">u</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Batch Explosion Grid / Table */}
+                  {selectedGarment.bom.length > 0 && (
+                    <div className="border border-[#E6E1D8] rounded-xl overflow-hidden bg-white shadow-2xs">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-[#FAF8F5] text-[10px] font-bold uppercase text-[#5F6B61] border-b border-[#E6E1D8]">
+                            <tr>
+                              <th className="p-3">Materia Prima</th>
+                              <th className="p-3 text-right">Consumo Unit.</th>
+                              <th className="p-3 text-right">Requerido para {batchSimQty.toLocaleString()} u (Uso)</th>
+                              <th className="p-3 text-right">Equivalente en Compra</th>
+                              <th className="p-3 text-right">Stock en Bodega</th>
+                              <th className="p-3 text-center">Disponibilidad</th>
+                              <th className="p-3 text-right">Costo Insumo (Lote)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#F2EEE6]">
+                            {selectedGarment.bom.map((bItem, i) => {
+                              const mat = rawMaterials.find((m) => m.id === bItem.rawMaterialId);
+                              const grossUnit = bItem.quantityPerGarment * (1 + bItem.wastePercent / 100);
+                              const totalBatchUsage = grossUnit * batchSimQty;
+                              const pUnit = mat?.purchaseUnit || mat?.unit || bItem.unit;
+                              const uUnit = mat?.usageUnit || bItem.unit;
+                              const yFactor = mat?.yieldFactor || 1.0;
+                              const totalBatchPurchase = yFactor > 0 ? totalBatchUsage / yFactor : totalBatchUsage;
+                              const currentStock = mat?.currentStock || 0;
+                              const stockInUsage = mat ? currentStock * yFactor : currentStock;
+                              const hasEnough = stockInUsage >= totalBatchUsage;
+                              const missingQty = Math.max(0, totalBatchPurchase - currentStock);
+                              const cost = totalBatchUsage * (mat?.unitCost || 0);
+
+                              return (
+                                <tr key={i} className="hover:bg-[#FAF8F5]">
+                                  <td className="p-3">
+                                    <div className="font-bold text-[#1C211D]">{bItem.rawMaterialName}</div>
+                                    <div className="text-[10px] text-[#5F6B61] font-mono">{mat?.sku || bItem.rawMaterialId}</div>
+                                  </td>
+                                  <td className="p-3 text-right font-mono text-[#5F6B61]">
+                                    {bItem.quantityPerGarment} {bItem.unit} (+{bItem.wastePercent}%)
+                                  </td>
+                                  <td className="p-3 text-right font-bold text-[#1C211D] font-mono">
+                                    {totalBatchUsage.toLocaleString(undefined, { maximumFractionDigits: 2 })} {uUnit}
+                                  </td>
+                                  <td className="p-3 text-right font-mono text-[#3A5A40] font-semibold">
+                                    {totalBatchPurchase.toLocaleString(undefined, { maximumFractionDigits: 2 })} {pUnit}
+                                  </td>
+                                  <td className="p-3 text-right font-mono">
+                                    <span className="font-bold text-[#1C211D]">{currentStock.toLocaleString()} {pUnit}</span>
+                                    {yFactor !== 1.0 && (
+                                      <span className="text-[10px] text-[#5F6B61] block">
+                                        ≈ {stockInUsage.toLocaleString(undefined, { maximumFractionDigits: 1 })} {uUnit}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    {hasEnough ? (
+                                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">
+                                        ✓ Stock Suficiente
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-bold text-[10px] block" title={`Faltan ${missingQty.toFixed(2)} ${pUnit} para este lote`}>
+                                        Faltan {missingQty.toFixed(1)} {pUnit}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-right font-mono font-bold text-[#3A5A40]">
+                                    {formatCOP(cost, false)}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot className="bg-[#FAF8F5] border-t border-[#E6E1D8] font-bold">
+                            <tr>
+                              <td colSpan={6} className="p-3 text-right text-[#1C211D]">
+                                Inversión Total Materia Prima para Fabricar {batchSimQty.toLocaleString()} prendas:
+                              </td>
+                              <td className="p-3 text-right font-mono text-sm text-[#3A5A40]">
+                                {formatCOP(rawMaterialCost * batchSimQty)}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Add Material to BOM Quick Panel */}

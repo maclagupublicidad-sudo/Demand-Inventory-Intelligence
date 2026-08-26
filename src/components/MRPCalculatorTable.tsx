@@ -16,6 +16,7 @@ import {
   Check,
 } from 'lucide-react';
 import { formatCOP } from '../utils/formatters';
+import { TechTermTooltip } from './TechTermTooltip';
 
 interface MRPCalculatorTableProps {
   items?: MRPResultItem[];
@@ -538,9 +539,15 @@ export const MRPCalculatorTable: React.FC<MRPCalculatorTableProps> = ({
                 <th className="px-4 py-3">Material & SKU</th>
                 <th className="px-4 py-3">Categoría</th>
                 <th className="px-4 py-3 text-right">Stock Actual</th>
-                <th className="px-4 py-3 text-right">Requerido (Demanda + Merma)</th>
-                <th className="px-4 py-3 text-right">Déficit Neto</th>
-                <th className="px-4 py-3 text-right">Compra Sugerida (MOQ)</th>
+                <th className="px-4 py-3 text-right">
+                  <TechTermTooltip termKey="requerimientoBruto">Requerido (Bruto + Merma)</TechTermTooltip>
+                </th>
+                <th className="px-4 py-3 text-right">
+                  <TechTermTooltip termKey="requerimientoNeto">Déficit Neto</TechTermTooltip>
+                </th>
+                <th className="px-4 py-3 text-right">
+                  <TechTermTooltip termKey="moq">Compra Sugerida (MOQ)</TechTermTooltip>
+                </th>
                 <th className="px-4 py-3 text-right">Presupuesto COP</th>
                 <th className="px-4 py-3 text-center">Estado</th>
                 <th className="px-4 py-3 text-center">Acción</th>
@@ -592,8 +599,15 @@ export const MRPCalculatorTable: React.FC<MRPCalculatorTableProps> = ({
                           </button>
                           <div>
                             <div className="font-semibold text-[#1C211D]">{item.rawMaterial.name}</div>
-                            <div className="text-[10px] text-[#5F6B61] font-mono mt-0.5">
-                              SKU: {item.rawMaterial.sku} | Prov: {item.rawMaterial.supplierName} ({item.rawMaterial.leadTimeDays}d)
+                            <div className="text-[10px] text-[#5F6B61] font-mono mt-0.5 flex flex-wrap items-center gap-1.5">
+                              <span>SKU: {item.rawMaterial.sku}</span>
+                              <span>•</span>
+                              <span>Prov: {item.rawMaterial.supplierName} ({item.rawMaterial.leadTimeDays}d)</span>
+                              {item.rawMaterial.yieldFactor && item.rawMaterial.yieldFactor !== 1.0 && (
+                                <span className="bg-[#EBF2EC] text-[#3A5A40] px-1.5 py-0.2 rounded text-[9px] font-bold">
+                                  1 {item.rawMaterial.purchaseUnit || item.rawMaterial.unit} = {item.rawMaterial.yieldFactor} {item.rawMaterial.usageUnit || item.rawMaterial.unit}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>

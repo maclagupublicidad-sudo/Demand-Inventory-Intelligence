@@ -3,6 +3,7 @@ import { MRPSummary } from '../services/mrpEngine';
 import { ProductionCycleConfig, ProductionOrder } from '../types';
 import { Shirt, DollarSign, AlertTriangle, CheckCircle2, Package, Sparkles, ArrowUpRight, Plus, Upload, Factory, Activity, ChevronRight } from 'lucide-react';
 import { formatCOP } from '../utils/formatters';
+import { TechTermTooltip } from './TechTermTooltip';
 
 interface DashboardOverviewProps {
   mrpSummary: MRPSummary;
@@ -136,7 +137,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         {/* Card 1: Sales / Production Target */}
         <div className="bg-white p-5 rounded-xl border border-[#E6E1D8] shadow-xs">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] text-[#5F6B61] font-bold uppercase tracking-wider mb-1">Demanda del Ciclo</p>
+            <div className="text-[10px] text-[#5F6B61] font-bold uppercase tracking-wider mb-1">
+              <TechTermTooltip termKey="mrp">Demanda del Ciclo</TechTermTooltip>
+            </div>
             <div className="w-8 h-8 rounded-lg bg-[#EBF2EC] text-[#3A5A40] flex items-center justify-center">
               <Shirt className="w-4 h-4" />
             </div>
@@ -156,7 +159,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         {/* Card 2: Total Materials Budget */}
         <div className="bg-white p-5 rounded-xl border border-[#E6E1D8] shadow-xs">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] text-[#5F6B61] font-bold uppercase tracking-wider mb-1">Presupuesto Materia Prima</p>
+            <div className="text-[10px] text-[#5F6B61] font-bold uppercase tracking-wider mb-1">
+              <TechTermTooltip termKey="bom">Presupuesto Materia Prima</TechTermTooltip>
+            </div>
             <div className="w-8 h-8 rounded-lg bg-[#EBF2EC] text-[#3A5A40] flex items-center justify-center">
               <DollarSign className="w-4 h-4" />
             </div>
@@ -173,7 +178,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         {/* Card 3: Deficit vs Critical Count */}
         <div className="bg-white p-5 rounded-xl border border-[#E6E1D8] shadow-xs">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] text-[#5F6B61] font-bold uppercase tracking-wider mb-1">Insumos Críticos / Déficit</p>
+            <div className="text-[10px] text-[#5F6B61] font-bold uppercase tracking-wider mb-1">
+              <TechTermTooltip termKey="requerimientoNeto">Insumos Críticos / Déficit</TechTermTooltip>
+            </div>
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
               mrpSummary.criticalItemsCount > 0 ? 'bg-[#FDF2F0] text-[#B33927]' : 'bg-[#EBF2EC] text-[#3A5A40]'
             }`}>
@@ -191,7 +198,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         {/* Card 4: Orders in Pipeline */}
         <div className="bg-white p-5 rounded-xl border border-[#E6E1D8] shadow-xs">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] text-[#5F6B61] font-bold uppercase tracking-wider mb-1">Insumos Abastecidos</p>
+            <div className="text-[10px] text-[#5F6B61] font-bold uppercase tracking-wider mb-1">
+              <TechTermTooltip termKey="cobertura">Insumos Abastecidos</TechTermTooltip>
+            </div>
             <div className="w-8 h-8 rounded-lg bg-[#EBF2EC] text-[#3A5A40] flex items-center justify-center">
               <Package className="w-4 h-4" />
             </div>

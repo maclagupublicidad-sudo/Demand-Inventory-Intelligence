@@ -33,6 +33,7 @@ import { RawMaterial, Garment, MaterialCategory } from '../types';
 import { formatCOP } from '../utils/formatters';
 import { MaterialModal } from './MaterialModal';
 import { InventoryMovementModal, StockMovementRecord } from './InventoryMovementModal';
+import { TechTermTooltip } from './TechTermTooltip';
 
 interface RawMaterialsManagerProps {
   materials: RawMaterial[];
@@ -593,7 +594,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
             <thead className="bg-[#FAF8F5] text-[#5F6B61] font-bold border-b border-[#E6E1D8] text-[10px] uppercase tracking-wider">
               <tr>
                 <th className="p-3.5">SKU / Insumo</th>
-                <th className="p-3.5">Categoría & Detalles</th>
+                <th className="p-3.5">Categoría & Rendimiento</th>
                 <th className="p-3.5 text-right">
                   <div className="flex items-center justify-end gap-1">
                     <span>Stock Disponible (Físico)</span>
@@ -609,12 +610,15 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                 <th className="p-3.5 text-right">Total Proyectado</th>
                 <th className="p-3.5 text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <span>Stock de Seguridad</span>
-                    <ShieldCheck className="w-3 h-3 text-[#8F9990]" title="Cantidad mínima para no parar producción" />
+                    <TechTermTooltip termKey="stock_seguridad">Stock Seguridad</TechTermTooltip>
                   </div>
                 </th>
-                <th className="p-3.5 text-right">MOQ & Costo</th>
-                <th className="p-3.5">Proveedor & Lead Time</th>
+                <th className="p-3.5 text-right">
+                  <TechTermTooltip termKey="moq">MOQ</TechTermTooltip> & Costo
+                </th>
+                <th className="p-3.5">
+                  Proveedor & <TechTermTooltip termKey="lead_time">Lead Time</TechTermTooltip>
+                </th>
                 <th className="p-3.5 text-center">Estado</th>
                 <th className="p-3.5 text-center">Acciones</th>
               </tr>
@@ -651,6 +655,13 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                   const isBelowSafety = mat.currentStock < safetyQty;
                   const isZeroStock = mat.currentStock <= 0;
                   const totalProjected = mat.currentStock + (mat.inTransitStock || 0);
+                  const hasYieldConversion = Boolean(
+                    (mat.yieldFactor && mat.yieldFactor !== 1.0) ||
+                    (mat.purchaseUnit && mat.usageUnit && mat.purchaseUnit !== mat.usageUnit)
+                  );
+                  const pUnit = mat.purchaseUnit || mat.unit;
+                  const uUnit = mat.usageUnit || mat.unit;
+                  const yFactor = mat.yieldFactor || 1.0;
 
                   return (
                     <tr
@@ -673,13 +684,26 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                             Color/Tono: {mat.color}
                           </div>
                         )}
+                        {usingGarments.length > 0 && (
+                          <div className="text-[10px] text-[#3A5A40] font-medium mt-1">
+                            Usado en {usingGarments.length} prenda{usingGarments.length > 1 ? 's' : ''}
+                          </div>
+                        )}
                       </td>
 
-                      {/* Category & Textile Specifics */}
+                      {/* Category & Textile Specifics & Yield */}
                       <td className="p-3.5">
-                        <span className="px-2 py-0.5 bg-[#F2EEE6] text-[#5F6B61] rounded text-[10px] font-semibold">
-                          {mat.category}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className="px-2 py-0.5 bg-[#F2EEE6] text-[#5F6B61] rounded text-[10px] font-semibold">
+                            {mat.category}
+                          </span>
+                          {hasYieldConversion && (
+                            <span className="px-1.5 py-0.5 bg-[#EBF2EC] text-[#3A5A40] border border-[#D4E3D7] rounded text-[9px] font-bold flex items-center gap-1" title={mat.yieldDescription || `1 ${pUnit} = ${yFactor} ${uUnit}`}>
+                              <ArrowRightLeft className="w-2.5 h-2.5" />
+                              1 {pUnit} = {yFactor} {uUnit}
+                            </span>
+                          )}
+                        </div>
                         {mat.widthMeters && (
                           <div className="text-[10px] text-[#8F9990] mt-0.5">
                             Ancho: {mat.widthMeters}m
@@ -711,9 +735,14 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                           )}
                           <span className="text-xs font-mono">
                             {mat.currentStock.toLocaleString()}{' '}
-                            <span className="text-[10px] font-normal text-[#5F6B61]">{mat.unit}</span>
+                            <span className="text-[10px] font-normal text-[#5F6B61]">{pUnit}</span>
                           </span>
                         </div>
+                        {hasYieldConversion && (
+                          <div className="text-[10px] text-[#3A5A40] font-mono">
+                            ≈ {(mat.currentStock * yFactor).toLocaleString()} {uUnit}
+                          </div>
+                        )}
                         <div className="text-[10px] text-[#8F9990] font-mono font-normal">
                           {formatCOP(mat.currentStock * mat.unitCost, false)}
                         </div>
@@ -724,7 +753,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                         {(mat.inTransitStock || 0) > 0 ? (
                           <div>
                             <div className="text-xs font-bold text-[#3A5A40] font-mono">
-                              +{mat.inTransitStock.toLocaleString()} {mat.unit}
+                              +{mat.inTransitStock.toLocaleString()} {pUnit}
                             </div>
                             <div className="text-[10px] text-[#5F6B61] font-mono font-normal">
                               {formatCOP((mat.inTransitStock || 0) * mat.unitCost, false)}
@@ -738,7 +767,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                       {/* Total Proyectado */}
                       <td className="p-3.5 text-right font-mono font-bold text-[#1C211D]">
                         <div className="text-xs">
-                          {totalProjected.toLocaleString()} <span className="text-[10px] font-normal text-[#5F6B61]">{mat.unit}</span>
+                          {totalProjected.toLocaleString()} <span className="text-[10px] font-normal text-[#5F6B61]">{pUnit}</span>
                         </div>
                         <div className="text-[10px] text-[#8F9990] font-normal">
                           {formatCOP(totalProjected * mat.unitCost, false)}
@@ -748,7 +777,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                       {/* Stock de Seguridad */}
                       <td className="p-3.5 text-right text-[#5F6B61]">
                         <div className="font-bold text-[#1C211D] font-mono text-xs">
-                          {safetyQty.toLocaleString()} {mat.unit}
+                          {safetyQty.toLocaleString()} {pUnit}
                         </div>
                         <div className="text-[10px] text-[#8F9990] flex items-center justify-end gap-1 mt-0.5">
                           <ShieldCheck className="w-3 h-3 text-[#3A5A40]" />
@@ -762,7 +791,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                           {formatCOP(mat.unitCost, false)}
                         </div>
                         <div className="text-[10px] text-[#5F6B61]">
-                          MOQ: <span className="font-semibold text-[#1C211D]">{mat.minOrderQuantity}</span> {mat.unit}
+                          MOQ: <span className="font-semibold text-[#1C211D]">{mat.minOrderQuantity}</span> {pUnit}
                         </div>
                       </td>
 
@@ -808,7 +837,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                           {/* Quick Adjust Button */}
                           <button
                             onClick={() => handleOpenMovement(mat)}
-                            className="p-1.5 text-[#3A5A40] bg-[#EBF2EC] hover:bg-[#D4E3D7] rounded-lg transition-colors font-bold flex items-center gap-1 text-[11px]"
+                            className="p-1.5 text-[#3A5A40] bg-[#EBF2EC] hover:bg-[#D4E3D7] rounded-lg transition-colors font-bold flex items-center gap-1 text-[11px] cursor-pointer"
                             title="Ajustar inventario (Recepción, Salida, Conteo Físico)"
                           >
                             <ArrowRightLeft className="w-3.5 h-3.5" />
@@ -818,7 +847,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                           {/* Edit */}
                           <button
                             onClick={() => handleOpenEdit(mat)}
-                            className="p-1.5 text-[#5F6B61] hover:text-[#3A5A40] hover:bg-[#FAF8F5] rounded-lg transition-colors"
+                            className="p-1.5 text-[#5F6B61] hover:text-[#3A5A40] hover:bg-[#FAF8F5] rounded-lg transition-colors cursor-pointer"
                             title="Editar parámetros y proveedor"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -835,7 +864,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                                 onDeleteMaterial(mat.id);
                               }
                             }}
-                            className="p-1.5 text-[#8F9990] hover:text-[#B33927] hover:bg-rose-50 rounded-lg transition-colors"
+                            className="p-1.5 text-[#8F9990] hover:text-[#B33927] hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                             title="Eliminar insumo"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

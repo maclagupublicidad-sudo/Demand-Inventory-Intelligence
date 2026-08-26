@@ -50,6 +50,7 @@ interface HeaderProps {
   onStartCleanOnboarding?: () => void;
   criticalCount: number;
   onResetDemoData: () => void;
+  onResetToCleanState?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -72,6 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
   onStartCleanOnboarding,
   criticalCount,
   onResetDemoData,
+  onResetToCleanState,
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
   const [isCompanyMenuOpen, setIsCompanyMenuOpen] = useState<boolean>(false);
@@ -505,6 +507,20 @@ export const Header: React.FC<HeaderProps> = ({
                           >
                             <Upload className="w-4 h-4 text-[#3A5A40]" />
                             Centro de Datos CSV
+                          </button>
+                        )}
+
+                        {onResetToCleanState && (
+                          <button
+                            onClick={() => {
+                              setIsUserMenuOpen(false);
+                              onResetToCleanState();
+                            }}
+                            className="w-full text-left px-3 py-2 rounded-xl bg-[#FDF2F0] hover:bg-[#FBE5E2] text-[#B33927] font-bold flex items-center gap-2.5 transition-colors cursor-pointer"
+                            title="Borrar datos de prueba e iniciar onboarding limpio para despliegue"
+                          >
+                            <RefreshCw className="w-4 h-4 text-[#B33927]" />
+                            <span>Restablecer a Ceros (Despliegue)</span>
                           </button>
                         )}
 

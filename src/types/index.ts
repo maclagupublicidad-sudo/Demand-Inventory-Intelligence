@@ -8,19 +8,19 @@ export type MaterialCategory =
   | 'Cremallera'
   | 'Otro';
 
-export type MaterialUnit = 'm' | 'kg' | 'unidades' | 'yardas' | 'conos' | 'gruesas' | 'docenas' | 'rollos' | 'paquetes';
+export type MaterialUnit = 'm' | 'kg' | 'unidades' | 'yardas' | 'conos' | 'gruesas' | 'docenas' | 'rollos' | 'paquetes' | 'cm' | 'cajas' | 'millares';
 
 export interface RawMaterial {
   id: string;
   sku: string;
   name: string;
   category: MaterialCategory;
-  unit: MaterialUnit;
+  unit: MaterialUnit; // Unidad de compra principal (ej: 'kg', 'rollos', 'm', 'conos')
   currentStock: number;
   inTransitStock: number;
   safetyStockDays: number;
   minOrderQuantity: number; // MOQ
-  unitCost: number; // COP/unit
+  unitCost: number; // COP/unit (Precio por unidad de compra)
   supplierName: string;
   leadTimeDays: number;
   description?: string;
@@ -28,16 +28,27 @@ export interface RawMaterial {
   widthMeters?: number; // Para telas (ej. 1.50m)
   weightGsm?: number; // Para telas gramos/m2
   isActive?: boolean; // Estado activo / inactivo
+  // =========================================================
+  // CONVERSIÓN Y RENDIMIENTO DE MATERIA PRIMA (COMPRA vs USO)
+  // =========================================================
+  purchaseUnit?: MaterialUnit; // Unidad en que se compra (ej: 'kg', 'rollos', 'conos', 'paquetes')
+  usageUnit?: MaterialUnit; // Unidad en que se consume en la prenda (ej: 'm', 'cm', 'unidades', 'conos')
+  yieldFactor?: number; // Factor de rendimiento: cuántas unidades de uso rinde 1 unidad de compra (ej: 1 kg tela = 2.50 m; 1 rollo = 100 m; 1 cono = 5000 m; 1 kg elástico = 35 m)
+  yieldDescription?: string; // Explicación legible de la conversión (ej: "1 kg rinde 2.50 metros útiles")
+  defaultWastePercent?: number; // Merma promedio del material (%)
 }
 
 export interface BOMItem {
   rawMaterialId: string;
   rawMaterialName: string;
   category: MaterialCategory;
-  quantityPerGarment: number; // Consumo unitario (ej: 0.85 kg de tela, 10 botones)
+  quantityPerGarment: number; // Consumo unitario en unidad de confección (ej: 1.35 metros de tela, 10 botones)
   unit: MaterialUnit;
   wastePercent: number; // Merma de corte específica para este componente (%)
   notes?: string; // Observaciones del insumo (ej: "Ubicación: Cuello y pechera")
+  // Equivalencia calculada automática
+  equivalentPurchaseQty?: number; // Consumo equivalente en unidad de compra (ej: 1.35 m / 2.50 = 0.54 kg)
+  purchaseUnit?: MaterialUnit; // Unidad de compra relacionada
 }
 
 export interface ProductionTimes {
@@ -127,6 +138,7 @@ export interface Garment {
   isActive?: boolean; // Estado activo / desactivado de la prenda
   description?: string; // Descripción comercial o técnica
   referenceCode?: string; // Código de colección o referencia
+  targetMarginPercent?: number; // Margen de ganancia objetivo personalizado (%)
 }
 
 export type CycleDuration = '1_month' | '3_months' | '6_months' | '12_months' | 'custom';
@@ -151,22 +163,35 @@ export type MRPStatus = 'CRITICO' | 'REORDEN' | 'OPTIMO' | 'SOBRESTOCK';
 
 export interface MRPResultItem {
   rawMaterial: RawMaterial;
-  grossRequirement: number; // Demanda total teórica
-  effectiveGrossRequirement: number; // Requerimiento considerando merma de corte
-  currentStock: number;
-  inTransitStock: number;
-  availableStock: number; // Stock + Tránsito
-  safetyStockRequired: number; // Stock de seguridad requerido
-  netRequirement: number; // Déficit real
-  suggestedPurchaseQty: number; // Ajustado a MOQ (Lote mínimo)
-  totalEstimatedCost: number;
-  daysOfCoverage: number; // Días de cobertura con el stock disponible
+  // Requerimientos en unidad de consumo / producción
+  grossRequirement: number; // Demanda total teórica en unidad de uso (ej. metros)
+  effectiveGrossRequirement: number; // Requerimiento considerando merma de corte en unidad de uso
+  usageUnit: MaterialUnit;
+  // Stock y conversión
+  currentStock: number; // En unidad de compra (ej: 10 kg)
+  currentStockInUsageUnit: number; // En unidad de uso (ej: 25.0 m)
+  inTransitStock: number; // En unidad de compra
+  inTransitStockInUsageUnit: number; // En unidad de uso
+  availableStock: number; // Stock + Tránsito en unidad de compra
+  availableStockInUsageUnit: number; // Stock + Tránsito en unidad de uso
+  yieldFactor: number; // Rendimiento: 1 unidad compra = N unidades uso
+  conversionFormula: string; // Explicación de la conversión
+  // Necesidades y sugerencia de compra
+  safetyStockRequired: number; // Stock de seguridad en unidad de compra
+  safetyStockRequiredInUsageUnit: number; // Stock de seguridad en unidad de uso
+  netRequirement: number; // Déficit en unidad de compra
+  netRequirementInUsageUnit: number; // Déficit en unidad de uso
+  suggestedPurchaseQty: number; // Cantidad a comprar ajustada a MOQ en unidad de compra (ej: kg o rollos)
+  totalEstimatedCost: number; // Costo total en COP
+  daysOfCoverage: number; // Días de cobertura
   status: MRPStatus;
   usedInGarments: {
     garmentName: string;
     garmentSku: string;
     consumption: number;
+    unit: MaterialUnit;
     demand: number;
+    totalUsage: number;
   }[];
 }
 

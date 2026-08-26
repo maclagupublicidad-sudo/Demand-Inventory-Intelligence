@@ -176,27 +176,48 @@ export function calculateMRP(
 
   const items: MRPResultItem[] = allMaterialsList.map((mat) => {
     const data = materialReqMap.get(mat.id) || { grossReq: 0, effectiveGrossReq: 0, usedIn: [] };
+    const yieldFactor = mat.yieldFactor && mat.yieldFactor > 0 ? mat.yieldFactor : 1.0;
+    const usageUnit = mat.usageUnit || mat.unit;
+    const purchaseUnit = mat.purchaseUnit || mat.unit;
+    const conversionFormula =
+      yieldFactor !== 1.0 || purchaseUnit !== usageUnit
+        ? `1 ${purchaseUnit} = ${yieldFactor} ${usageUnit}`
+        : `1 ${purchaseUnit} = 1 ${usageUnit}`;
+
     const grossReq = Number(data.grossReq.toFixed(2));
     const effectiveGrossReq = Number(data.effectiveGrossReq.toFixed(2));
-    const availableStock = mat.currentStock + mat.inTransitStock;
 
-    // Daily consumption rate across cycle
-    const dailyConsumption = effectiveGrossReq > 0 ? effectiveGrossReq / cycleDays : 0;
+    // Stocks in purchase unit
+    const currentStock = mat.currentStock;
+    const inTransitStock = mat.inTransitStock;
+    const availableStock = currentStock + inTransitStock;
+
+    // Stocks converted to usage unit (e.g., kg -> meters)
+    const currentStockInUsageUnit = Number((currentStock * yieldFactor).toFixed(2));
+    const inTransitStockInUsageUnit = Number((inTransitStock * yieldFactor).toFixed(2));
+    const availableStockInUsageUnit = Number((availableStock * yieldFactor).toFixed(2));
+
+    // Daily consumption rate in usage unit
+    const dailyConsumptionUsage = effectiveGrossReq > 0 ? effectiveGrossReq / cycleDays : 0;
+    const dailyConsumptionPurchase = yieldFactor > 0 ? dailyConsumptionUsage / yieldFactor : 0;
 
     // Safety stock: based on material safety stock days + buffer days
     const totalSafetyDays = (mat.safetyStockDays || cycleConfig.safetyStockDaysDefault || 15) + leadTimeBufferDays;
-    const safetyStockRequired = Number((dailyConsumption * totalSafetyDays).toFixed(2));
+    const safetyStockRequiredInUsageUnit = Number((dailyConsumptionUsage * totalSafetyDays).toFixed(2));
+    const safetyStockRequired = Number((dailyConsumptionPurchase * totalSafetyDays).toFixed(2));
 
     // Scrap additional requirement
-    const scrapAdditionalQty = Math.max(0, effectiveGrossReq - grossReq);
-    totalScrapCostUSD += scrapAdditionalQty * mat.unitCost;
+    const scrapAdditionalQtyUsage = Math.max(0, effectiveGrossReq - grossReq);
+    const scrapAdditionalQtyPurchase = yieldFactor > 0 ? scrapAdditionalQtyUsage / yieldFactor : 0;
+    totalScrapCostUSD += scrapAdditionalQtyPurchase * mat.unitCost;
     totalSafetyStockCostUSD += safetyStockRequired * mat.unitCost;
 
-    // Real net shortage
-    const targetStockLevel = effectiveGrossReq + safetyStockRequired;
-    const netRequirement = Math.max(0, targetStockLevel - availableStock);
+    // Real net shortage calculation in usage unit and purchase unit
+    const targetStockLevelUsage = effectiveGrossReq + safetyStockRequiredInUsageUnit;
+    const netRequirementInUsageUnit = Math.max(0, targetStockLevelUsage - availableStockInUsageUnit);
+    const netRequirement = yieldFactor > 0 ? Number((netRequirementInUsageUnit / yieldFactor).toFixed(2)) : 0;
 
-    // Rounded purchase quantity respecting MOQ
+    // Rounded purchase quantity in purchase units respecting MOQ
     let suggestedPurchaseQty = 0;
     if (netRequirement > 0) {
       const moq = mat.minOrderQuantity || 1;
@@ -208,14 +229,15 @@ export function calculateMRP(
     totalInvestmentUSD += totalEstimatedCost;
 
     // Days of coverage
-    const daysOfCoverage = dailyConsumption > 0 ? Math.round(availableStock / dailyConsumption) : 999;
+    const daysOfCoverage =
+      dailyConsumptionUsage > 0 ? Math.round(availableStockInUsageUnit / dailyConsumptionUsage) : 999;
 
     // Status logic
     let status: MRPStatus = 'OPTIMO';
-    if (availableStock < effectiveGrossReq * 0.45 && effectiveGrossReq > 0) {
+    if (availableStockInUsageUnit < effectiveGrossReq * 0.45 && effectiveGrossReq > 0) {
       status = 'CRITICO';
       criticalItemsCount++;
-    } else if (availableStock < targetStockLevel && netRequirement > 0) {
+    } else if (availableStockInUsageUnit < targetStockLevelUsage && netRequirementInUsageUnit > 0) {
       status = 'REORDEN';
       reorderItemsCount++;
     } else if (daysOfCoverage > cycleDays * 2.0 && effectiveGrossReq > 0) {
@@ -252,16 +274,28 @@ export function calculateMRP(
       rawMaterial: mat,
       grossRequirement: grossReq,
       effectiveGrossRequirement: effectiveGrossReq,
-      currentStock: mat.currentStock,
-      inTransitStock: mat.inTransitStock,
+      usageUnit,
+      currentStock,
+      currentStockInUsageUnit,
+      inTransitStock,
+      inTransitStockInUsageUnit,
       availableStock,
+      availableStockInUsageUnit,
+      yieldFactor,
+      conversionFormula,
       safetyStockRequired,
-      netRequirement: Number(netRequirement.toFixed(2)),
+      safetyStockRequiredInUsageUnit: Number(safetyStockRequiredInUsageUnit.toFixed(2)),
+      netRequirement,
+      netRequirementInUsageUnit: Number(netRequirementInUsageUnit.toFixed(2)),
       suggestedPurchaseQty,
       totalEstimatedCost,
       daysOfCoverage,
       status,
-      usedInGarments: data.usedIn,
+      usedInGarments: data.usedIn.map((u) => ({
+        ...u,
+        unit: usageUnit,
+        totalUsage: Number((u.consumption * u.demand).toFixed(2)),
+      })),
     };
   });
 

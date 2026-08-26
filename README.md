@@ -10,24 +10,26 @@
 1. [Visión General](#-visión-general)
 2. [Arquitectura Tecnológica & Stack](#-arquitectura-tecnológica--stack)
 3. [Módulos & Funcionalidades Principales](#-módulos--funcionalidades-principales)
-   - [1. Modo Onboarding Limpio & Multi-Empresa](#1-modo-onboarding-limpio--multi-empresa)
+   - [1. Modo Onboarding Limpio & Multi-Empresa (Restablecimiento a Ceros)](#1-modo-onboarding-limpio--multi-empresa-restablecimiento-a-ceros)
    - [2. Dashboard Ejecutivo & Centro de Alertas](#2-dashboard-ejecutivo--centro-de-alertas)
    - [3. Proyección de Demanda & Estacionalidad Textil](#3-proyección-de-demanda--estacionalidad-textil)
    - [4. Fichas Técnicas (Tech Packs), BOM & Tiempos SAM](#4-fichas-técnicas-tech-packs-bom--tiempos-sam)
-   - [5. Simulador de Costeo: Taller Propio vs. Maquila Satélite](#5-simulador-de-costeo-taller-propio-vs-maquila-satélite)
-   - [6. Motor de Cálculo MRP (Material Requirements Planning)](#6-motor-de-cálculo-mrp-material-requirements-planning)
-   - [7. Ejecución en Planta & Control de Piso (MES)](#7-ejecución-en-planta--control-de-piso-mes)
-   - [8. Benchmarking Comparativo Inter-Empresas](#8-benchmarking-comparativo-inter-empresas)
-   - [9. Gestión de Órdenes de Compra & Abastecimiento](#9-gestión-de-órdenes-de-compra--abastecimiento)
-   - [10. Demo Interactiva & Guía de Botones](#10-demo-interactiva--guía-de-botones)
-   - [11. Control de Acceso por Roles (RBAC)](#11-control-de-acceso-por-roles-rbac)
-   - [12. Simulador "What-If" & Asesor IA Gemini](#12-simulador-what-if--asesor-ia-gemini)
-   - [13. Centro de Datos CSV & Exportación PDF](#13-centro-de-datos-csv--exportación-pdf)
+   - [5. Conversión de Unidades de Compra a Unidades de Confección](#5-conversión-de-unidades-de-compra-a-unidades-de-confección)
+   - [6. Simulador de Costeo: Taller Propio vs. Maquila Satélite](#6-simulador-de-costeo-taller-propio-vs-maquila-satélite)
+   - [7. Motor de Cálculo MRP (Material Requirements Planning)](#7-motor-de-cálculo-mrp-material-requirements-planning)
+   - [8. Ejecución en Planta & Control de Piso (MES)](#8-ejecución-en-planta--control-de-piso-mes)
+   - [9. Benchmarking Comparativo Inter-Empresas](#9-benchmarking-comparativo-inter-empresas)
+   - [10. Gestión de Órdenes de Compra & Abastecimiento](#10-gestión-de-órdenes-de-compra--abastecimiento)
+   - [11. Demo Interactiva & Guía de Botones](#11-demo-interactiva--guía-de-botones)
+   - [12. Control de Acceso por Roles (RBAC)](#12-control-de-acceso-por-roles-rbac)
+   - [13. Simulador "What-If" & Asesor IA Gemini](#13-simulador-what-if--asesor-ia-gemini)
+   - [14. Centro de Datos CSV & Exportación PDF](#14-centro-de-datos-csv--exportación-pdf)
 4. [Estructura del Proyecto](#-estructura-del-proyecto)
 5. [Cuentas de Usuario y Matriz de Permisos](#-cuentas-de-usuario-y-matriz-de-permisos)
 6. [Modelos Matemáticos y Fórmulas del Motor](#-modelos-matemáticos-y-fórmulas-del-motor)
-7. [Instalación, Ejecución & Despliegue en GitHub](#-instalación-ejecución--despliegue-en-github)
-8. [Variables de Entorno](#-variables-de-entorno)
+7. [Instalación, Ejecución & Despliegue en Producción (Cloud Run, Vercel, VPS)](#-instalación-ejecución--despliegue-en-producción)
+8. [Puesta en Marcha en Ceros (Ready to Deploy)](#-puesta-en-marcha-en-ceros-ready-to-deploy)
+9. [Variables de Entorno](#-variables-de-entorno)
 
 ---
 
@@ -61,10 +63,11 @@
 
 ## 📦 Módulos & Funcionalidades Principales
 
-### 1. Modo Onboarding Limpio & Multi-Empresa
+### 1. Modo Onboarding Limpio & Multi-Empresa (Restablecimiento a Ceros)
 - **Registro de Empresa Limpio**: Permite registrar una nueva empresa textil desde cero con 0 datos de prueba residuales, configurando Razón Social, Marca, NIT, Ciudad, Especialidad, Color corporativo y Usuario Administrador.
 - **Selector y Administrador de Sedes**: Cambio instantáneo entre múltiples empresas registradas con aislamiento de datos en almacenamiento local.
-- **Modo Demo Disponible**: Opción de cargar empresas de muestra preconfiguradas para demostraciones o capacitación técnica.
+- **Restablecer a Ceros para Despliegue**: Botón accesible desde el perfil de usuario para reiniciar el entorno a estado limpio para producción.
+- **Modo Demo Disponible**: Opción de cargar empresas de muestra preconfiguradas para demostraciones, pruebas o capacitación técnica.
 
 ### 2. Dashboard Ejecutivo & Centro de Alertas
 - **Métricas en Tiempo Real**: Total de prendas proyectadas en el ciclo, inversión requerida en materias primas (COP), ítems en estado crítico de desabastecimiento y disponibilidad de inventario.
@@ -93,40 +96,50 @@
 - **Ruta Operacional de Confección**: Secuencia detallada de operaciones por maquinaria (Plana, Overlock, Cerradora de Codo, Fusionadora, etc.).
 - **Matriz de Calidad & Prevención de Defectos (QC)**: Chequeo de tolerancias milimétricas y puntos críticos de inspección.
 
-### 5. Simulador de Costeo: Taller Propio vs. Maquila Satélite
+### 5. Conversión de Unidades de Compra a Unidades de Confección
+- **Dualidad de Unidades**: Soporte para insumos que se compran en una unidad comercial y se consumen en otra durante el corte y la costura:
+  - **Telas en Rollo**: Compra en `rollos` ➔ Consumo en `metros` (ej. 1 rollo = 100 m).
+  - **Tejido de Punto**: Compra en `kg` ➔ Consumo en `metros` con factor de rendimiento (ej. 1 kg = 2.65 m).
+  - **Botones & Broches**: Compra en `gruesas` o `docenas` ➔ Consumo en `unidades` (ej. 1 gruesa = 144 unidades).
+  - **Hilos & Hilazas**: Compra en `cajas` ➔ Consumo en `conos` (ej. 1 caja = 12 conos).
+  - **Etiquetas**: Compra en `millares` ➔ Consumo en `unidades` (ej. 1 millar = 1000 unidades).
+- **Calculadora Interactiva de Lotes en Ficha Técnica**: Simulación instantánea del consumo total para 1, 10, 50, 100, 500 o $N$ prendas con validación de cobertura de stock en bodega.
+- **Glosario Textil Integrado (Tooltips)**: Explicación contextual de términos clave (*MOQ, Lead Time, Merma, SAM, BOM, Requerimiento Bruto y Neto*) sin saturar la interfaz.
+
+### 6. Simulador de Costeo: Taller Propio vs. Maquila Satélite
 - **Costeo Integral**: Materia prima directa (telas + avíos del BOM).
 - **Taller Interno**: Mano de Obra Directa (MOD) según SAM y tarifa por minuto + Costos Indirectos de Fabricación (CIF / Minuto).
 - **Maquila Externa**: Tarifas satélite de corte, ensamble, terminación y fletes.
 - **Comparativa Financiera**: Visualización de costo unitario y margen bruto proyectado frente al PVP.
 
-### 6. Motor de Cálculo MRP (Material Requirements Planning)
-- **Consumo Efectivo Bruto**: Suma de demanda por consumos unitarios ajustados por merma de corte.
+### 7. Motor de Cálculo MRP (Material Requirements Planning)
+- **Consumo Efectivo Bruto**: Suma de demanda por consumos unitarios ajustados por merma de corte y factores de conversión de unidades.
 - **Stock de Seguridad Dinámico**: Basado en días de cobertura y consumo promedio diario.
 - **Requerimiento Neto & Sugerencia de Compra**: Ajuste automático al Lote Mínimo de Compra (MOQ) del proveedor y cálculo de costo proyectado en COP.
 
-### 7. Ejecución en Planta & Control de Piso (MES)
+### 8. Ejecución en Planta & Control de Piso (MES)
 - **Órdenes de Producción (OP)**: Emisión, asignación de taller y seguimiento de avance en tiempo real.
 - **Registro por Etapas**: Corte, Confección/Ensamble, Lavandería/Tintorería, Terminación y Empaque.
 - **Auditoría de Mermas**: Comparación de unidades cortadas vs. unidades de primera calidad producidas.
 
-### 8. Benchmarking Comparativo Inter-Empresas
+### 9. Benchmarking Comparativo Inter-Empresas
 - **Comparativa de Rendimiento**: Métricas cruzadas de eficiencia de tizado, productividad SAM, costo promedio por prenda y rotación de inventarios entre empresas y sedes.
 
-### 9. Gestión de Órdenes de Compra & Abastecimiento
+### 10. Gestión de Órdenes de Compra & Abastecimiento
 - **Generación Automática**: Conversión de déficits de materiales en órdenes de compra agrupadas por proveedor.
 - **Recepción de Mercancía**: Al marcar como `Recibida`, el sistema actualiza automáticamente el inventario físico disponible.
 
-### 10. Demo Interactiva & Guía de Botones
+### 11. Demo Interactiva & Guía de Botones
 - **Tour de Botones**: Guía explicativa con buscador integrado para conocer la función y ubicación de cada botón, modal y herramienta del sistema.
 
-### 11. Control de Acceso por Roles (RBAC)
+### 12. Control de Acceso por Roles (RBAC)
 - **Autenticación Segura**: Múltiples roles preconfigurados (Administrador, Comercial, Ingeniería, Compras, Producción, Calidad) con matriz de 13 permisos granulares.
 
-### 12. Simulador "What-If" & Asesor IA Gemini
+### 13. Simulador "What-If" & Asesor IA Gemini
 - **Simulación Dinámica**: Variación de demanda, estrés de merma de corte y colchón de seguridad de proveedores.
 - **Asesor IA**: Recomendaciones estratégicas impulsadas por Gemini API para mitigar cuellos de botella y optimizar compras.
 
-### 13. Centro de Datos CSV & Exportación PDF
+### 14. Centro de Datos CSV & Exportación PDF
 - **Importación/Exportación CSV**: Soporte de Ventas, Insumos y Fichas Técnicas con plantillas descargables y asistente paso a paso con previsualización editable.
 - **Flujo Secuencial Inteligente (1 ➔ 2 ➔ 3)**: El sistema incluye detección automática de orden de dependencias para garantizar consistencia relacional y cálculo de costos sin advertencias.
 - **Exportación Tech Pack PDF**: Documentos técnicos formales con formato listo para impresión y entrega a talleres satélites.
@@ -250,7 +263,7 @@ $$SC_i = \begin{cases}
 
 ---
 
-## 💻 Instalación, Ejecución & Despliegue en GitHub
+## 💻 Instalación, Ejecución & Despliegue en Producción
 
 ### Requisitos
 - **Node.js**: Versión 18.x, 20.x o 22.x
@@ -267,13 +280,13 @@ cd texora
 npm install
 ```
 
-### 3. Iniciar el servidor de desarrollo
+### 3. Iniciar el servidor de desarrollo local
 ```bash
 npm run dev
 ```
 Abre tu navegador en `http://localhost:3000`.
 
-### 4. Validar código con TypeScript
+### 4. Validar código con TypeScript & Linter
 ```bash
 npm run lint
 ```
@@ -282,14 +295,46 @@ npm run lint
 ```bash
 npm run build
 ```
-Este comando genera:
-- Los archivos web estáticos optimizados en `dist/`.
-- El servidor backend compilado y empaquetado en `dist/server.cjs`.
+Este comando ejecuta:
+1. `vite build`: Minifica y optimiza los activos React para el frontend en `dist/`.
+2. `esbuild server.ts`: Empaqueta el backend Express en `dist/server.cjs` (CJS autónomo de alto rendimiento).
 
-### 6. Ejecutar en producción
+### 6. Ejecutar en producción (Contenedor o VPS)
 ```bash
 npm run start
 ```
+
+### 7. Despliegue en Cloud Run / Docker
+La aplicación incluye configuración lista para contenedores en puertos estándar de producción:
+```dockerfile
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "run", "start"]
+```
+
+---
+
+## 🚀 Puesta en Marcha en Ceros (Ready to Deploy)
+
+Para entregar la aplicación a un cliente final o desplegarla en un entorno productivo limpio:
+
+1. **Estado Inicial Limpio**: La aplicación arranca automáticamente en la pantalla de **Onboarding de Empresa** cuando no existen registros previos.
+2. **Registro de la Empresa**:
+   - Ingresa la Razón Social y Marca.
+   - Especifica el NIT y Ciudad/Sede principal.
+   - Define la especialidad textil (Camisería, Denim, Ropa Deportiva, Infantil, etc.).
+   - Crea las credenciales del Administrador General.
+3. **Carga de Datos Reales (Flujo Recomendado 1 ➔ 2 ➔ 3)**:
+   - **Paso 1**: Cargar o registrar el inventario de **Materias Primas e Insumos** (con sus unidades de compra y de confección).
+   - **Paso 2**: Registrar las **Fichas Técnicas / Tech Packs (BOM)** asociando los insumos registrados.
+   - **Paso 3**: Ingresar las **Metas de Ventas / Demanda** para el ciclo de producción.
+   - El motor MRP calculará de inmediato la explosión de materiales, órdenes de compra sugeridas y presupuesto requerido.
+4. **Restablecimiento Rápido**: En caso de haber realizado pruebas y querer entregar el sistema limpio, utiliza la opción **Restablecer a Ceros (Despliegue)** desde el menú de usuario en la barra superior.
 
 ---
 

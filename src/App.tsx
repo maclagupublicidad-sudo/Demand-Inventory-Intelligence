@@ -556,7 +556,7 @@ export default function App() {
 
   const handleResetDemoData = () => {
     const choice = confirm(
-      '¿Desea restaurar los datos de ejemplo (DEMO)?\n\nPresione ACEPTAR para cargar datos de prueba, o CANCELAR para mantener el sistema limpio.'
+      '¿Desea restaurar los datos de ejemplo (DEMO)?\n\nPresione ACEPTAR para cargar datos de prueba, o CANCELAR para mantener el estado actual.'
     );
     if (choice) {
       setGarments(DEMO_GARMENTS);
@@ -568,6 +568,33 @@ export default function App() {
       setUsers(INITIAL_USERS);
       setCurrentUser(INITIAL_USERS[0]);
     }
+  };
+
+  // Reset entirely to clean state (Restablecer a Ceros para Despliegue de Producción)
+  const handleResetToCleanState = () => {
+    const confirmed = confirm(
+      '⚠️ RESTABLECER A CEROS PARA DESPLIEGUE:\n\nEsta acción borrará todos los datos de prueba y abrirá la pantalla de configuración inicial limpia para que la empresa registre su información real desde cero.\n\n¿Desea continuar?'
+    );
+    if (!confirmed) return;
+
+    localStorage.removeItem('textiliq_onboarding_completed');
+    localStorage.removeItem('textiliq_companies');
+    localStorage.removeItem('textiliq_active_company_id');
+    localStorage.removeItem('textiliq_garments');
+    localStorage.removeItem('textiliq_materials');
+    localStorage.removeItem('textiliq_sales');
+    localStorage.removeItem('textiliq_cycle');
+    localStorage.removeItem('textiliq_orders');
+    localStorage.removeItem('textiliq_production_orders');
+    localStorage.removeItem('textiliq_users');
+    localStorage.removeItem('textiliq_current_user');
+
+    setGarments([]);
+    setRawMaterials([]);
+    setSalesRecords([]);
+    setPurchaseOrders([]);
+    setProductionOrders([]);
+    setIsOnboarding(true);
   };
 
   // Clean Company Registration (0 test data)
@@ -1062,6 +1089,7 @@ export default function App() {
         onStartCleanOnboarding={() => setIsOnboarding(true)}
         criticalCount={mrpSummary.criticalItemsCount}
         onResetDemoData={handleResetDemoData}
+        onResetToCleanState={handleResetToCleanState}
       />
 
       {/* Production Cycle Control & Parameters Bar */}
