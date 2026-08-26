@@ -520,6 +520,35 @@ export function parseRawMaterialsCSV(
     const { value: rawSupplier } = getRowValue(row, ['Proveedor', 'Supplier', 'Fabricante', 'Distribuidor']);
     const supplierName = String(rawSupplier || 'Proveedor General').trim();
 
+    // Additional optional fields (Units conversion, yield, waste, color, width, weight, notes)
+    const { value: rawPurchaseUnit } = getRowValue(row, ['Unidad_Compra', 'PurchaseUnit', 'UnidadCompra']);
+    const purchaseUnit = rawPurchaseUnit ? (String(rawPurchaseUnit).trim() as MaterialUnit) : unit;
+
+    const { value: rawUsageUnit } = getRowValue(row, ['Unidad_Uso', 'Unidad_Confeccion', 'UsageUnit', 'UnidadUso']);
+    const usageUnit = rawUsageUnit ? (String(rawUsageUnit).trim() as MaterialUnit) : unit;
+
+    const { value: rawYield } = getRowValue(row, ['Factor_Rendimiento', 'Rendimiento', 'YieldFactor', 'FactorConversion']);
+    const yieldRes = parseNumberField(rawYield, 'Factor_Rendimiento', rowNumber, { min: 0.01, defaultValue: 1 });
+    const yieldFactor = rawYield ? yieldRes.numberVal : 1;
+
+    const { value: rawWaste } = getRowValue(row, ['Merma_Defecto_Porcentaje', 'Merma_Porcentaje', 'MermaDefecto', 'Merma']);
+    const wasteRes = parseNumberField(rawWaste, 'Merma_Defecto_Porcentaje', rowNumber, { min: 0, max: 50, defaultValue: 3 });
+    const defaultWastePercent = rawWaste ? wasteRes.numberVal : 3;
+
+    const { value: rawColor } = getRowValue(row, ['Color', 'Tono']);
+    const color = rawColor ? String(rawColor).trim() : undefined;
+
+    const { value: rawWidth } = getRowValue(row, ['Ancho_Metros', 'Ancho', 'WidthMeters']);
+    const widthRes = parseNumberField(rawWidth, 'Ancho_Metros', rowNumber, { min: 0.1, max: 5 });
+    const widthMeters = rawWidth ? widthRes.numberVal : undefined;
+
+    const { value: rawGsm } = getRowValue(row, ['Gramaje_GSM', 'Gramaje', 'WeightGsm', 'GSM']);
+    const gsmRes = parseNumberField(rawGsm, 'Gramaje_GSM', rowNumber, { min: 10, max: 1000 });
+    const weightGsm = rawGsm ? gsmRes.numberVal : undefined;
+
+    const { value: rawDesc } = getRowValue(row, ['Descripcion', 'Notas', 'Detalle', 'Observaciones']);
+    const description = rawDesc ? String(rawDesc).trim() : undefined;
+
     const hasErrors = rowIssues.some((i) => i.severity === 'error');
     let item: RawMaterial | undefined;
 
@@ -537,6 +566,15 @@ export function parseRawMaterialsCSV(
         unitCost,
         supplierName,
         leadTimeDays,
+        purchaseUnit,
+        usageUnit,
+        yieldFactor,
+        defaultWastePercent,
+        color,
+        widthMeters,
+        weightGsm,
+        description,
+        isActive: true,
       };
       materials.push(item);
     }
@@ -933,9 +971,9 @@ export function parseBOMCSV(
 // -------------------------------------------------------------
 export function downloadCSVTemplate(type: 'ventas' | 'materias_primas' | 'fichas_tecnicas' | 'todas') {
   if (type === 'todas') {
-    downloadCSVTemplate('ventas');
-    setTimeout(() => downloadCSVTemplate('materias_primas'), 250);
-    setTimeout(() => downloadCSVTemplate('fichas_tecnicas'), 500);
+    downloadCSVTemplate('materias_primas');
+    setTimeout(() => downloadCSVTemplate('fichas_tecnicas'), 350);
+    setTimeout(() => downloadCSVTemplate('ventas'), 700);
     return;
   }
 
@@ -944,26 +982,16 @@ export function downloadCSVTemplate(type: 'ventas' | 'materias_primas' | 'fichas
   let filename = '';
 
   switch (type) {
-    case 'ventas':
-      filename = '1_plantilla_ventas_historicas_COP.csv';
-      headers = ['Fecha', 'SKU_Prenda', 'Nombre_Prenda', 'Unidades_Vendidas', 'Canal', 'Ingreso_Total_COP'];
-      sampleRows = [
-        ['2026-06-01', 'CAM-OXF-ML-AZUL', 'Camisa Oxford Manga Larga Clásica', '120', 'Tiendas Retail', '20160000'],
-        ['2026-06-15', 'PAN-JEA-SLIM-IND', 'Pantalón Jean Denim Slim Fit 5 Bolsillos', '180', 'Mayorista', '41760000'],
-        ['2026-07-01', 'POL-PIQ-PIMA-GRS', 'Polo Piqué Algodón Pima Manga Corta', '220', 'E-Commerce', '29920000'],
-        ['2026-07-15', 'CAM-OXF-ML-AZUL', 'Camisa Oxford Manga Larga Clásica', '150', 'Tiendas Retail', '25200000'],
-        ['2026-08-01', 'VES-LIN-BOT-BEI', 'Vestido Camisero Lino Botones Frontales', '90', 'Boutique Flagship', '23400000'],
-        ['2026-08-10', 'CHA-BOM-TAS-NEG', 'Chaqueta Bomber Taslan Impermeable', '110', 'Distribuidores', '31680000'],
-      ];
-      break;
-
     case 'materias_primas':
-      filename = '2_plantilla_inventario_materias_primas_COP.csv';
+      filename = '1_plantilla_materias_primas_insumos.csv';
       headers = [
         'SKU_Material',
         'Nombre_Material',
         'Categoria',
-        'Unidad_Medida',
+        'Unidad_Compra',
+        'Unidad_Uso',
+        'Factor_Rendimiento',
+        'Merma_Defecto_Porcentaje',
         'Stock_Actual',
         'En_Transito',
         'Stock_Seguridad_Dias',
@@ -971,27 +999,29 @@ export function downloadCSVTemplate(type: 'ventas' | 'materias_primas' | 'fichas
         'Costo_Unitario_COP',
         'Proveedor',
         'Lead_Time_Dias',
+        'Color',
+        'Ancho_Metros',
+        'Gramaje_GSM',
+        'Descripcion',
       ];
       sampleRows = [
-        ['TEL-OXF-100-AZU', 'Tela Oxford 100% Algodón (Azul Cielo)', 'Tela', 'm', '1450', '500', '15', '200', '19800', 'Textiles Fabricato / El Cóndor S.A.', '14'],
-        ['TEL-DEN-125-IND', 'Denim Índigo 12.5 oz Sanforizado', 'Tela', 'm', '2800', '1200', '20', '500', '28900', 'Coltejer Textil Colombiana', '21'],
-        ['TEL-PIQ-PIMA-GRS', 'Piqué Algodón Pima 24/1 (Gris Jaspe)', 'Tela', 'kg', '650', '300', '15', '100', '48000', 'Hilanderías Universal de Colombia', '18'],
-        ['TEL-LIN-100-BEI', 'Lino Puro 100% Pre-lavado (Beige Natural)', 'Tela', 'm', '480', '200', '25', '150', '38500', 'Importadora Textil Andina SAS', '30'],
-        ['TEL-TAS-NYL-NEG', 'Nylon Taslan Repelente al Agua (Negro)', 'Tela', 'm', '890', '0', '12', '200', '24500', 'Lafayette S.A.S. Textiles Técnicos', '12'],
-        ['AVI-BOT-18L-PER', 'Botón Poliéster 18L 4 Huecos (Efecto Perla)', 'Avío / Fornitura', 'unidades', '28000', '10000', '15', '1000', '140', 'Botones & Fornituras de Colombia', '10'],
-        ['AVI-BOT-REM-24L', 'Botón Remache Metálico Jean 24L (Bronce Envejecido)', 'Avío / Fornitura', 'unidades', '6500', '2000', '20', '500', '480', 'Herrajes & Metales YKK', '15'],
-        ['AVI-CRE-MET-15C', 'Cremallera Metálica Latón #4.5 de 15cm (Índigo)', 'Avío / Fornitura', 'unidades', '4200', '1500', '18', '500', '1750', 'Corporación Cierres YKK', '16'],
-        ['AVI-CRE-TAS-65C', 'Cremallera Diente de Perro Separable #5 de 65cm (Negro)', 'Avío / Fornitura', 'unidades', '1100', '0', '15', '200', '3600', 'Corporación Cierres YKK', '14'],
-        ['HIL-POL-120-BLA', 'Hilo 100% Poliéster Spun 120/2 Cono 5,000m (Blanco)', 'Hilo', 'conos', '95', '30', '15', '20', '14500', 'Coats Cadena Andina S.A.', '7'],
-        ['HIL-COR-040-OCR', 'Hilo Core-Spun 40/2 Jean Cono 4,000m (Ocre)', 'Hilo', 'conos', '65', '0', '20', '15', '26000', 'Coats Cadena Andina S.A.', '10'],
-        ['ENT-FUS-75G-BLA', 'Entretela Tejida Fusionable Cuellos/Puños 75g (Blanco)', 'Entretela', 'm', '850', '300', '20', '100', '4900', 'Freudenberg / Entretelas de Colombia', '15'],
-        ['EMP-BOL-REC-TRA', 'Bolsa Polietileno Reciclado Transparente con Adhesivo', 'Empaque / Etiqueta', 'unidades', '14000', '5000', '15', '2000', '210', 'Empaques Ecológicos SAS', '7'],
-        ['EMP-ETI-MAR-DAM', 'Etiqueta de Marca Tejida Damasco Alta Definición', 'Empaque / Etiqueta', 'unidades', '18500', '5000', '25', '2500', '320', 'Etiquetas & Marquillas de Colombia', '20'],
+        ['TEL-OXF-100-AZU', 'Tela Oxford 100% Algodón (Azul Cielo)', 'Tela', 'rollos', 'm', '100', '5.0', '1450', '500', '15', '2', '1980000', 'Textiles Fabricato / El Cóndor S.A.', '14', 'Azul Cielo', '1.50', '135', 'Tejido plano suave para camisería ejecutiva'],
+        ['TEL-DEN-125-IND', 'Denim Índigo 12.5 oz Sanforizado', 'Tela', 'rollos', 'm', '100', '6.0', '2800', '1200', '20', '5', '2890000', 'Coltejer Textil Colombiana', '21', 'Índigo Intenso', '1.60', '380', 'Denim rígido para jeans clásicos 5 bolsillos'],
+        ['TEL-PIQ-PIMA-GRS', 'Piqué Algodón Pima 24/1 (Gris Jaspe)', 'Tela', 'kg', 'm', '2.65', '7.0', '650', '300', '15', '100', '48000', 'Hilanderías Universal de Colombia', '18', 'Gris Jaspe', '1.80', '220', 'Tejido de punto piqué para polos de alta gama'],
+        ['TEL-LIN-100-BEI', 'Lino Puro 100% Pre-lavado (Beige Natural)', 'Tela', 'm', 'm', '1', '8.0', '480', '200', '25', '150', '38500', 'Importadora Textil Andina SAS', '30', 'Beige Natural', '1.45', '180', 'Lino prémium para vestidos y prendas de verano'],
+        ['AVI-BOT-18L-PER', 'Botón Poliéster 18L 4 Huecos (Efecto Perla)', 'Avío / Fornitura', 'gruesas', 'unidades', '144', '3.0', '28000', '10000', '15', '10', '20160', 'Botones & Fornituras de Colombia', '10', 'Nácar Perla', '', '', 'Botón camisero de 4 orificios para pechera y puños'],
+        ['AVI-BOT-REM-24L', 'Botón Remache Metálico Jean 24L (Bronce Envejecido)', 'Avío / Fornitura', 'unidades', 'unidades', '1', '1.0', '6500', '2000', '20', '500', '480', 'Herrajes & Metales YKK', '15', 'Bronce Envejecido', '', '', 'Botón metálico de golpe para pretina de jeans'],
+        ['AVI-CRE-MET-15C', 'Cremallera Metálica Latón #4.5 de 15cm (Índigo)', 'Avío / Fornitura', 'unidades', 'unidades', '1', '1.0', '4200', '1500', '18', '500', '1750', 'Corporación Cierres YKK', '16', 'Latón / Índigo', '', '', 'Cierre resistente para bragueta de jean'],
+        ['HIL-POL-120-BLA', 'Hilo Poliéster Spun 120 Cono 5000m (Blanco)', 'Hilo', 'cajas', 'conos', '12', '2.0', '95', '30', '15', '2', '174000', 'Coats Cadena Andina S.A.', '7', 'Blanco Óptico', '', '', 'Hilo estándar para costura recta y sobrehilado'],
+        ['HIL-COR-040-OCR', 'Hilo Core-Spun 40/2 Jean Cono 4000m (Ocre)', 'Hilo', 'conos', 'conos', '1', '3.0', '65', '0', '20', '15', '26000', 'Coats Cadena Andina S.A.', '10', 'Ocre / Oro', '', '', 'Hilo de pespunte decorativo de alta resistencia'],
+        ['ENT-FUS-75G-BLA', 'Entretela Tejida Termofusionable 75g (Blanco)', 'Entretela', 'rollos', 'm', '100', '4.0', '850', '300', '20', '1', '490000', 'Freudenberg / Entretelas de Colombia', '15', 'Blanco', '0.90', '75', 'Entretela para dar cuerpo y estructura a cuellos y puños'],
+        ['EMP-ETI-MAR-DAM', 'Etiqueta de Marca Tejida Damasco Alta Definición', 'Empaque / Etiqueta', 'millares', 'unidades', '1000', '1.5', '18500', '5000', '25', '2', '320000', 'Etiquetas & Marquillas de Colombia', '20', 'Bicolor', '', '', 'Marquilla tejida para coser al centro de espalda'],
+        ['EMP-BOL-REC-TRA', 'Bolsa Polietileno Reciclado Transparente con Adhesivo', 'Empaque / Etiqueta', 'paquetes', 'unidades', '500', '2.0', '14000', '5000', '15', '5', '105000', 'Empaques Ecológicos SAS', '7', 'Transparente', '', '', 'Bolsa individual para empaque y despacho'],
       ];
       break;
 
     case 'fichas_tecnicas':
-      filename = '3_plantilla_fichas_tecnicas_produccion_COP.csv';
+      filename = '2_plantilla_fichas_tecnicas_BOM.csv';
       headers = [
         'SKU_Prenda',
         'Nombre_Prenda',
@@ -1025,17 +1055,36 @@ export function downloadCSVTemplate(type: 'ventas' | 'materias_primas' | 'fichas
       ];
       break;
 
+    case 'ventas':
+      filename = '3_plantilla_ventas_historicas_demanda.csv';
+      headers = ['Fecha', 'SKU_Prenda', 'Nombre_Prenda', 'Unidades_Vendidas', 'Canal', 'Ingreso_Total_COP'];
+      sampleRows = [
+        ['2026-06-01', 'CAM-OXF-ML-AZUL', 'Camisa Oxford Manga Larga Clásica', '120', 'Tiendas Retail', '20160000'],
+        ['2026-06-15', 'PAN-JEA-SLIM-IND', 'Pantalón Jean Denim Slim Fit 5 Bolsillos', '180', 'Mayorista', '41760000'],
+        ['2026-07-01', 'POL-PIQ-PIMA-GRS', 'Polo Piqué Algodón Pima Manga Corta', '220', 'E-Commerce', '29920000'],
+        ['2026-07-15', 'CAM-OXF-ML-AZUL', 'Camisa Oxford Manga Larga Clásica', '150', 'Tiendas Retail', '25200000'],
+        ['2026-08-01', 'PAN-JEA-SLIM-IND', 'Pantalón Jean Denim Slim Fit 5 Bolsillos', '210', 'Tiendas Retail', '48720000'],
+        ['2026-08-15', 'POL-PIQ-PIMA-GRS', 'Polo Piqué Algodón Pima Manga Corta', '190', 'Distribuidores', '25840000'],
+      ];
+      break;
+
     default:
       break;
   }
 
-  const csvContent = [headers.join(','), ...sampleRows.map((r) => r.map((c) => `"${c}"`).join(','))].join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const csvContent = [headers.join(','), ...sampleRows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
   link.setAttribute('download', filename);
+  link.style.display = 'none';
   document.body.appendChild(link);
   link.click();
-  document.body.removeChild(link);
+  setTimeout(() => {
+    if (document.body.contains(link)) {
+      document.body.removeChild(link);
+    }
+    URL.revokeObjectURL(url);
+  }, 300);
 }

@@ -159,18 +159,18 @@ Para garantizar la integridad total de los cálculos MRP, costeo de prendas y ev
 
 ### ¿Por qué seguir este orden?
 
-1. **Paso 1 — Materias Primas (`1_Inventario_Materias_Primas.csv`)**:
-   - Establece el catálogo maestro con **costo unitario real en COP**, lote mínimo de compra (**MOQ**), tiempo de entrega (**Lead Time**), **Stock Actual** y proveedor.
+1. **Paso 1 — Materias Primas (`1_plantilla_materias_primas_insumos.csv`)**:
+   - Establece el catálogo maestro con **costo unitario real en COP**, unidad de compra y uso, lote mínimo de compra (**MOQ**), tiempo de entrega (**Lead Time**), **Stock Actual**, merma de defecto, ancho, gramaje y proveedor.
    - Permite que el sistema reconozca cada SKU de insumo antes de que sea referenciado en una prenda.
 
-2. **Paso 2 — Fichas Técnicas (`2_Fichas_Tecnicas_BOM.csv`)**:
-   - Enlaza cada prenda con sus insumos requeridos, consumos unitarios y % de merma de corte.
-   - Si las materias primas ya están cargadas, la ficha técnica hereda automáticamente los costos y proveedores oficiales, evitando advertencias de *insumos no registrados*.
+2. **Paso 2 — Fichas Técnicas (`2_plantilla_fichas_tecnicas_BOM.csv`)**:
+   - Enlaza cada prenda con sus insumos requeridos, consumos unitarios, % de merma de corte, tiempos SAM de confección, tarifas de maquila y precio de venta (PVP).
+   - Si las materias primas ya están cargadas, la ficha técnica hereda automáticamente los costos y proveedores oficiales, garantizando costeo exacto.
 
-3. **Paso 3 — Ventas Históricas / Metas (`3_Ventas_Historicas.csv`)**:
-   - Define el volumen de prendas que alimentará el motor de cálculo MRP y la explosión de materiales para el ciclo.
+3. **Paso 3 — Ventas Históricas / Metas (`3_plantilla_ventas_historicas_demanda.csv`)**:
+   - Define el volumen de prendas que alimentará el motor de cálculo MRP y la explosión de materiales para el ciclo productivo.
 
-> 💡 **Carga Múltiple Simultánea**: Si arrastra los 3 archivos a la vez en el modal, el motor de TEXORA los ordenará y procesará automáticamente en la secuencia ideal (Materias Primas ➔ BOM ➔ Ventas).
+> 💡 **Carga Múltiple Simultánea**: Si arrastra los 3 archivos a la vez en el modal, el motor de TEXORA los ordenará y procesará automáticamente en la secuencia ideal (Materias Primas ➔ BOM ➔ Ventas). Además, puede descargar individualmente cada una de las 3 plantillas o el pack completo con 1 solo clic.
 
 ---
 

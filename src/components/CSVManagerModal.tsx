@@ -726,14 +726,24 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
 
               {/* Status of Staged Datasets & Template Download in 1-2-3 Order */}
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#5F6B61] mb-2.5">
-                  Estado de Archivos Cargados & Descarga de Plantillas (Secuencia 1-2-3)
-                </h4>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#5F6B61]">
+                    Estado de Archivos Cargados & Descarga de Plantillas (Secuencia 1-2-3)
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => downloadCSVTemplate('todas')}
+                    className="px-2.5 py-1 bg-[#FAF8F5] hover:bg-[#EBF2EC] border border-[#D5CEC2] hover:border-[#3A5A40] text-[#3A5A40] rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Descargar las 3 Plantillas CSV (Pack Completo)
+                  </button>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {/* Card 1: Materias Primas */}
                   <div
-                    className={`p-4 rounded-xl border transition-all ${
+                    className={`p-4 rounded-xl border transition-all flex flex-col justify-between ${
                       materialsResult
                         ? materialsResult.errorCount > 0
                           ? 'bg-rose-50/70 border-rose-300'
@@ -741,53 +751,57 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                         : 'bg-white border-[#E6E1D8]'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`p-1.5 rounded-lg ${
-                            materialsResult ? 'bg-[#3A5A40] text-white' : 'bg-stone-100 text-stone-600'
-                          }`}
-                        >
-                          <Package className="w-4 h-4" />
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`p-1.5 rounded-lg ${
+                              materialsResult ? 'bg-[#3A5A40] text-white' : 'bg-stone-100 text-stone-600'
+                            }`}
+                          >
+                            <Package className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="font-bold text-xs text-[#1C211D] block">1. Materias Primas</span>
+                            <span className="text-[9px] text-[#3A5A40] font-semibold">1_plantilla_materias_primas_insumos.csv</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-bold text-xs text-[#1C211D] block">1. Materias Primas</span>
-                          <span className="text-[9px] text-[#3A5A40] font-semibold">Recomendado 1º</span>
-                        </div>
+                        {materialsResult ? (
+                          <span
+                            className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                              materialsResult.errorCount > 0
+                                ? 'bg-rose-200 text-rose-900'
+                                : 'bg-emerald-200 text-emerald-900'
+                            }`}
+                          >
+                            {materialsResult.validCount} insumos
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-[#8F9990]">{rawMaterials.length} en memoria</span>
+                        )}
                       </div>
-                      {materialsResult ? (
-                        <span
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            materialsResult.errorCount > 0
-                              ? 'bg-rose-200 text-rose-900'
-                              : 'bg-emerald-200 text-emerald-900'
-                          }`}
-                        >
-                          {materialsResult.validCount} insumos
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-[#8F9990]">{rawMaterials.length} en memoria</span>
-                      )}
-                    </div>
 
-                    <p className="text-[11px] text-[#5F6B61] leading-relaxed">
-                      {materialsResult
-                        ? `Archivo: ${materialsResult.fileName} (${materialsResult.totalRows} insumos)`
-                        : 'Stock actual, en tránsito, MOQ, costo unitario COP y proveedores.'}
-                    </p>
+                      <p className="text-[11px] text-[#5F6B61] leading-relaxed">
+                        {materialsResult
+                          ? `Archivo: ${materialsResult.fileName} (${materialsResult.totalRows} insumos)`
+                          : 'Stock actual, en tránsito, MOQ, costos COP, mermas de defecto, ancho y gramaje.'}
+                      </p>
+                    </div>
 
                     <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center justify-between text-[11px]">
                       <button
+                        type="button"
                         onClick={() => downloadCSVTemplate('materias_primas')}
-                        className="text-[#3A5A40] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                        className="text-[#3A5A40] hover:text-[#2D4632] hover:underline font-bold flex items-center gap-1.5 cursor-pointer bg-[#FAF8F5] px-2 py-1 rounded-md border border-[#E6E1D8]"
                       >
-                        <Download className="w-3 h-3" />
-                        Plantilla
+                        <Download className="w-3.5 h-3.5" />
+                        Descargar Plantilla 1
                       </button>
                       {materialsResult && (
                         <button
+                          type="button"
                           onClick={() => setMaterialsResult(null)}
-                          className="text-[#B33927] hover:underline flex items-center gap-1 cursor-pointer"
+                          className="text-[#B33927] hover:underline flex items-center gap-1 cursor-pointer font-medium"
                         >
                           <Trash2 className="w-3 h-3" />
                           Quitar
@@ -798,7 +812,7 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
 
                   {/* Card 2: Fichas Técnicas BOM */}
                   <div
-                    className={`p-4 rounded-xl border transition-all ${
+                    className={`p-4 rounded-xl border transition-all flex flex-col justify-between ${
                       bomResult
                         ? bomResult.errorCount > 0
                           ? 'bg-rose-50/70 border-rose-300'
@@ -806,53 +820,57 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                         : 'bg-white border-[#E6E1D8]'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`p-1.5 rounded-lg ${
-                            bomResult ? 'bg-[#3A5A40] text-white' : 'bg-stone-100 text-stone-600'
-                          }`}
-                        >
-                          <Layers className="w-4 h-4" />
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`p-1.5 rounded-lg ${
+                              bomResult ? 'bg-[#3A5A40] text-white' : 'bg-stone-100 text-stone-600'
+                            }`}
+                          >
+                            <Layers className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="font-bold text-xs text-[#1C211D] block">2. Fichas Técnicas (BOM)</span>
+                            <span className="text-[9px] text-[#3A5A40] font-semibold">2_plantilla_fichas_tecnicas_BOM.csv</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-bold text-xs text-[#1C211D] block">2. Fichas Técnicas (BOM)</span>
-                          <span className="text-[9px] text-[#3A5A40] font-semibold">Recomendado 2º</span>
-                        </div>
+                        {bomResult ? (
+                          <span
+                            className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                              bomResult.errorCount > 0
+                                ? 'bg-rose-200 text-rose-900'
+                                : 'bg-emerald-200 text-emerald-900'
+                            }`}
+                          >
+                            {bomResult.validCount} prendas
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-[#8F9990]">{garments.length} en memoria</span>
+                        )}
                       </div>
-                      {bomResult ? (
-                        <span
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            bomResult.errorCount > 0
-                              ? 'bg-rose-200 text-rose-900'
-                              : 'bg-emerald-200 text-emerald-900'
-                          }`}
-                        >
-                          {bomResult.validCount} prendas
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-[#8F9990]">{garments.length} en memoria</span>
-                      )}
-                    </div>
 
-                    <p className="text-[11px] text-[#5F6B61] leading-relaxed">
-                      {bomResult
-                        ? `Archivo: ${bomResult.fileName} (${bomResult.validCount} prendas construidas)`
-                        : 'Consumos por prenda, mermas de corte, SAM de confección y PVP.'}
-                    </p>
+                      <p className="text-[11px] text-[#5F6B61] leading-relaxed">
+                        {bomResult
+                          ? `Archivo: ${bomResult.fileName} (${bomResult.validCount} prendas construidas)`
+                          : 'Consumos por prenda, mermas de corte, SAM de confección, tarifas de maquila y PVP.'}
+                      </p>
+                    </div>
 
                     <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center justify-between text-[11px]">
                       <button
+                        type="button"
                         onClick={() => downloadCSVTemplate('fichas_tecnicas')}
-                        className="text-[#3A5A40] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                        className="text-[#3A5A40] hover:text-[#2D4632] hover:underline font-bold flex items-center gap-1.5 cursor-pointer bg-[#FAF8F5] px-2 py-1 rounded-md border border-[#E6E1D8]"
                       >
-                        <Download className="w-3 h-3" />
-                        Plantilla
+                        <Download className="w-3.5 h-3.5" />
+                        Descargar Plantilla 2
                       </button>
                       {bomResult && (
                         <button
+                          type="button"
                           onClick={() => setBOMResult(null)}
-                          className="text-[#B33927] hover:underline flex items-center gap-1 cursor-pointer"
+                          className="text-[#B33927] hover:underline flex items-center gap-1 cursor-pointer font-medium"
                         >
                           <Trash2 className="w-3 h-3" />
                           Quitar
@@ -863,7 +881,7 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
 
                   {/* Card 3: Ventas */}
                   <div
-                    className={`p-4 rounded-xl border transition-all ${
+                    className={`p-4 rounded-xl border transition-all flex flex-col justify-between ${
                       salesResult
                         ? salesResult.errorCount > 0
                           ? 'bg-rose-50/70 border-rose-300'
@@ -871,53 +889,57 @@ JEA-DEN-002,Jean Clásico Denim 14oz,ETI-SAT-CON,Etiqueta Satín Instrucciones C
                         : 'bg-white border-[#E6E1D8]'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`p-1.5 rounded-lg ${
-                            salesResult ? 'bg-[#3A5A40] text-white' : 'bg-stone-100 text-stone-600'
-                          }`}
-                        >
-                          <ShoppingBag className="w-4 h-4" />
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`p-1.5 rounded-lg ${
+                              salesResult ? 'bg-[#3A5A40] text-white' : 'bg-stone-100 text-stone-600'
+                            }`}
+                          >
+                            <ShoppingBag className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="font-bold text-xs text-[#1C211D] block">3. Ventas Históricas</span>
+                            <span className="text-[9px] text-[#3A5A40] font-semibold">3_plantilla_ventas_historicas_demanda.csv</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-bold text-xs text-[#1C211D] block">3. Ventas Históricas</span>
-                          <span className="text-[9px] text-[#3A5A40] font-semibold">Recomendado 3º</span>
-                        </div>
+                        {salesResult ? (
+                          <span
+                            className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                              salesResult.errorCount > 0
+                                ? 'bg-rose-200 text-rose-900'
+                                : 'bg-emerald-200 text-emerald-900'
+                            }`}
+                          >
+                            {salesResult.validCount} válidas
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-[#8F9990]">{salesRecords.length} en memoria</span>
+                        )}
                       </div>
-                      {salesResult ? (
-                        <span
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            salesResult.errorCount > 0
-                              ? 'bg-rose-200 text-rose-900'
-                              : 'bg-emerald-200 text-emerald-900'
-                          }`}
-                        >
-                          {salesResult.validCount} válidas
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-[#8F9990]">{salesRecords.length} en memoria</span>
-                      )}
-                    </div>
 
-                    <p className="text-[11px] text-[#5F6B61] leading-relaxed">
-                      {salesResult
-                        ? `Archivo: ${salesResult.fileName} (${salesResult.totalRows} filas leídas)`
-                        : 'Fechas, SKU de prendas, unidades vendidas, canales e ingresos.'}
-                    </p>
+                      <p className="text-[11px] text-[#5F6B61] leading-relaxed">
+                        {salesResult
+                          ? `Archivo: ${salesResult.fileName} (${salesResult.totalRows} filas leídas)`
+                          : 'Fechas de venta, SKU de prenda, unidades comercializadas, canal de venta e ingresos COP.'}
+                      </p>
+                    </div>
 
                     <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center justify-between text-[11px]">
                       <button
+                        type="button"
                         onClick={() => downloadCSVTemplate('ventas')}
-                        className="text-[#3A5A40] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                        className="text-[#3A5A40] hover:text-[#2D4632] hover:underline font-bold flex items-center gap-1.5 cursor-pointer bg-[#FAF8F5] px-2 py-1 rounded-md border border-[#E6E1D8]"
                       >
-                        <Download className="w-3 h-3" />
-                        Plantilla
+                        <Download className="w-3.5 h-3.5" />
+                        Descargar Plantilla 3
                       </button>
                       {salesResult && (
                         <button
+                          type="button"
                           onClick={() => setSalesResult(null)}
-                          className="text-[#B33927] hover:underline flex items-center gap-1 cursor-pointer"
+                          className="text-[#B33927] hover:underline flex items-center gap-1 cursor-pointer font-medium"
                         >
                           <Trash2 className="w-3 h-3" />
                           Quitar
