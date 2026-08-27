@@ -53,6 +53,12 @@ import { CompanyManagerModal } from './components/CompanyManagerModal';
 import { CompanyBenchmarkView } from './components/CompanyBenchmarkView';
 import { CompanyOnboardingView } from './components/CompanyOnboardingView';
 import { ButtonTourModal } from './components/ButtonTourModal';
+import { InventoryKardexView } from './components/InventoryKardexView';
+import { SuppliersManager } from './components/SuppliersManager';
+import { QualityControlView } from './components/QualityControlView';
+import { ProductionCostingView } from './components/ProductionCostingView';
+import { TraceabilityView } from './components/TraceabilityView';
+import { UnifiedDatabase } from './services/unifiedDatabase';
 import {
   Layers,
   Package,
@@ -1273,7 +1279,32 @@ export default function App() {
           )
         )}
 
-        {/* Tab 7: Comparativo Inter-Empresas & Benchmarking */}
+        {/* Tab 7: Kardex de Inventario & Movimientos */}
+        {activeTab === 'kardex' && (
+          <InventoryKardexView />
+        )}
+
+        {/* Tab 8: Directorio Maestro de Proveedores */}
+        {activeTab === 'proveedores' && (
+          <SuppliersManager />
+        )}
+
+        {/* Tab 9: Control de Calidad & Inspecciones */}
+        {activeTab === 'calidad' && (
+          <QualityControlView />
+        )}
+
+        {/* Tab 10: Costeo de Producción (Taller Propio vs Maquila) */}
+        {activeTab === 'costeo' && (
+          <ProductionCostingView />
+        )}
+
+        {/* Tab 11: Trazabilidad Integral End-to-End */}
+        {activeTab === 'trazabilidad' && (
+          <TraceabilityView />
+        )}
+
+        {/* Tab 12: Comparativo Inter-Empresas & Benchmarking */}
         {activeTab === 'benchmark' && (
           !hasPermission(currentUser, 'view_company_benchmarks') ? (
             <AccessRestricted

@@ -70,7 +70,309 @@ export function getRowValue(row: Record<string, any>, candidates: string[]): { v
   return { value: undefined, foundKey: null };
 }
 
-// Auto-detect CSV type from header columns
+// Category & Unit Resolvers
+export function resolveMaterialCategory(
+  rawCat?: any,
+  sku?: string,
+  name?: string
+): MaterialCategory {
+  const catStr = String(rawCat || '').trim();
+  const normCat = normalizeKey(catStr);
+
+  // 1. Direct and keyword match on category column
+  if (
+    normCat.includes('elastico') ||
+    normCat.includes('resorte') ||
+    normCat.includes('banda') ||
+    normCat.includes('elast')
+  ) {
+    return 'Elástico';
+  }
+  if (
+    normCat.includes('sesgo') ||
+    normCat.includes('cinta') ||
+    normCat.includes('reata') ||
+    normCat.includes('cordon') ||
+    normCat.includes('vivo') ||
+    normCat.includes('puntilla') ||
+    normCat.includes('ribbon') ||
+    normCat.includes('tape')
+  ) {
+    return 'Sesgo / Cinta';
+  }
+  if (
+    normCat.includes('boton') ||
+    normCat.includes('broche') ||
+    normCat.includes('remache') ||
+    normCat.includes('ojalete') ||
+    normCat.includes('button') ||
+    normCat.includes('snap')
+  ) {
+    return 'Botón / Broche';
+  }
+  if (
+    normCat.includes('cremallera') ||
+    normCat.includes('cierre') ||
+    normCat.includes('zipper') ||
+    normCat.includes('cursor') ||
+    normCat.includes('deslizador')
+  ) {
+    return 'Cremallera';
+  }
+  if (
+    normCat.includes('hilo') ||
+    normCat.includes('hilado') ||
+    normCat.includes('hilaza') ||
+    normCat.includes('cono') ||
+    normCat.includes('hebra') ||
+    normCat.includes('yarn') ||
+    normCat.includes('thread')
+  ) {
+    return 'Hilo';
+  }
+  if (
+    normCat.includes('entretela') ||
+    normCat.includes('fusionable') ||
+    normCat.includes('termofusionable') ||
+    normCat.includes('pellon') ||
+    normCat.includes('interlining') ||
+    normCat.includes('fiselina')
+  ) {
+    return 'Entretela';
+  }
+  if (
+    normCat.includes('empaque') ||
+    normCat.includes('etiqueta') ||
+    normCat.includes('marquilla') ||
+    normCat.includes('bolsa') ||
+    normCat.includes('hangtag') ||
+    normCat.includes('caja') ||
+    normCat.includes('carton') ||
+    normCat.includes('embalaje') ||
+    normCat.includes('polybag') ||
+    normCat.includes('sticker') ||
+    normCat.includes('label')
+  ) {
+    return 'Empaque / Etiqueta';
+  }
+  if (
+    normCat.includes('tinta') ||
+    normCat.includes('plastisol') ||
+    normCat.includes('pigmento') ||
+    normCat.includes('estampa') ||
+    normCat.includes('transfer') ||
+    normCat.includes('foil') ||
+    normCat.includes('serigraf')
+  ) {
+    return 'Estampación / Tinta';
+  }
+  if (
+    normCat.includes('avio') ||
+    normCat.includes('fornitura') ||
+    normCat.includes('herraje') ||
+    normCat.includes('puntera') ||
+    normCat.includes('pasador') ||
+    normCat.includes('hebilla') ||
+    normCat.includes('argolla') ||
+    normCat.includes('velcro') ||
+    normCat.includes('pega') ||
+    normCat.includes('trim')
+  ) {
+    return 'Avío / Fornitura';
+  }
+  if (
+    normCat.includes('tela') ||
+    normCat.includes('tejido') ||
+    normCat.includes('denim') ||
+    normCat.includes('lino') ||
+    normCat.includes('pique') ||
+    normCat.includes('oxford') ||
+    normCat.includes('drill') ||
+    normCat.includes('dril') ||
+    normCat.includes('sarga') ||
+    normCat.includes('jersey') ||
+    normCat.includes('rib') ||
+    normCat.includes('franela') ||
+    normCat.includes('algodon') ||
+    normCat.includes('poliester') ||
+    normCat.includes('viscosa') ||
+    normCat.includes('lycra') ||
+    normCat.includes('popelina') ||
+    normCat.includes('chalis') ||
+    normCat.includes('burda') ||
+    normCat.includes('interlock') ||
+    normCat.includes('gabardina') ||
+    normCat.includes('chifon') ||
+    normCat.includes('chiffon') ||
+    normCat.includes('crepe') ||
+    normCat.includes('satin') ||
+    normCat.includes('taslan') ||
+    normCat.includes('nylon') ||
+    normCat.includes('fabric') ||
+    normCat.includes('textil')
+  ) {
+    return 'Tela';
+  }
+  if (normCat.includes('otro') || normCat.includes('quimico') || normCat.includes('servicio')) {
+    return 'Otro';
+  }
+
+  // 2. Inference from SKU prefix
+  const skuUpper = String(sku || '').toUpperCase().trim();
+  if (skuUpper.startsWith('ELA-') || skuUpper.startsWith('RES-') || skuUpper.includes('ELAST')) {
+    return 'Elástico';
+  }
+  if (skuUpper.startsWith('SES-') || skuUpper.startsWith('CIN-') || skuUpper.startsWith('REA-') || skuUpper.startsWith('COR-')) {
+    return 'Sesgo / Cinta';
+  }
+  if (skuUpper.startsWith('BOT-') || skuUpper.startsWith('BRO-') || skuUpper.startsWith('REM-') || skuUpper.includes('BOTON') || skuUpper.startsWith('AVI-BOT')) {
+    return 'Botón / Broche';
+  }
+  if (skuUpper.startsWith('CRE-') || skuUpper.startsWith('CIE-') || skuUpper.startsWith('ZIP-') || skuUpper.includes('CREM') || skuUpper.startsWith('AVI-CRE')) {
+    return 'Cremallera';
+  }
+  if (skuUpper.startsWith('HIL-') || skuUpper.startsWith('CON-') || skuUpper.startsWith('YAR-') || skuUpper.includes('HILO')) {
+    return 'Hilo';
+  }
+  if (skuUpper.startsWith('ENT-') || skuUpper.startsWith('FUS-') || skuUpper.startsWith('PEL-') || skuUpper.includes('ENTRE')) {
+    return 'Entretela';
+  }
+  if (
+    skuUpper.startsWith('EMP-') ||
+    skuUpper.startsWith('ETI-') ||
+    skuUpper.startsWith('MAR-') ||
+    skuUpper.startsWith('BOL-') ||
+    skuUpper.startsWith('TAG-') ||
+    skuUpper.includes('ETIQ')
+  ) {
+    return 'Empaque / Etiqueta';
+  }
+  if (skuUpper.startsWith('TIN-') || skuUpper.startsWith('EST-') || skuUpper.startsWith('PLA-') || skuUpper.includes('TINTA')) {
+    return 'Estampación / Tinta';
+  }
+  if (
+    skuUpper.startsWith('AVI-') ||
+    skuUpper.startsWith('FOR-') ||
+    skuUpper.startsWith('HER-')
+  ) {
+    return 'Avío / Fornitura';
+  }
+  if (
+    skuUpper.startsWith('TEL-') ||
+    skuUpper.startsWith('DEN-') ||
+    skuUpper.startsWith('PIQ-') ||
+    skuUpper.startsWith('OXF-') ||
+    skuUpper.startsWith('LIN-') ||
+    skuUpper.startsWith('DRI-') ||
+    skuUpper.startsWith('JER-') ||
+    skuUpper.startsWith('POP-') ||
+    skuUpper.startsWith('FAB-')
+  ) {
+    return 'Tela';
+  }
+
+  // 3. Inference from Material Name
+  const normName = normalizeKey(String(name || ''));
+  if (
+    normName.includes('elastico') ||
+    normName.includes('resorte') ||
+    normName.includes('banda')
+  ) {
+    return 'Elástico';
+  }
+  if (
+    normName.includes('sesgo') ||
+    normName.includes('cinta') ||
+    normName.includes('reata') ||
+    normName.includes('cordon') ||
+    normName.includes('vivo') ||
+    normName.includes('puntilla')
+  ) {
+    return 'Sesgo / Cinta';
+  }
+  if (
+    normName.includes('boton') ||
+    normName.includes('broche') ||
+    normName.includes('remache') ||
+    normName.includes('ojalete')
+  ) {
+    return 'Botón / Broche';
+  }
+  if (normName.includes('cremallera') || normName.includes('cierre') || normName.includes('zipper')) {
+    return 'Cremallera';
+  }
+  if (normName.includes('hilo') || normName.includes('hilaza') || normName.includes('hilado') || normName.includes('cono5000') || normName.includes('cono4000')) {
+    return 'Hilo';
+  }
+  if (normName.includes('entretela') || normName.includes('fusionable') || normName.includes('termofusionable') || normName.includes('pellon')) {
+    return 'Entretela';
+  }
+  if (
+    normName.includes('etiqueta') ||
+    normName.includes('marquilla') ||
+    normName.includes('bolsa') ||
+    normName.includes('empaque') ||
+    normName.includes('caja') ||
+    normName.includes('hangtag')
+  ) {
+    return 'Empaque / Etiqueta';
+  }
+  if (
+    normName.includes('tinta') ||
+    normName.includes('plastisol') ||
+    normName.includes('estampado') ||
+    normName.includes('pigmento')
+  ) {
+    return 'Estampación / Tinta';
+  }
+  if (
+    normName.includes('herraje') ||
+    normName.includes('avio') ||
+    normName.includes('fornitura') ||
+    normName.includes('velcro')
+  ) {
+    return 'Avío / Fornitura';
+  }
+  if (
+    normName.includes('tela') ||
+    normName.includes('tejido') ||
+    normName.includes('denim') ||
+    normName.includes('lino') ||
+    normName.includes('pique') ||
+    normName.includes('oxford') ||
+    normName.includes('drill') ||
+    normName.includes('algodon') ||
+    normName.includes('poliester') ||
+    normName.includes('taslan') ||
+    normName.includes('sarga') ||
+    normName.includes('jersey')
+  ) {
+    return 'Tela';
+  }
+
+  // Fallback
+  return 'Avío / Fornitura';
+}
+
+export function resolveMaterialUnit(rawUnit?: any, defaultUnit: MaterialUnit = 'm'): MaterialUnit {
+  if (!rawUnit) return defaultUnit;
+  const norm = normalizeKey(String(rawUnit));
+
+  if (['kg', 'kilos', 'kilogramos', 'kilo', 'kgs'].includes(norm)) return 'kg';
+  if (['unidades', 'unidad', 'und', 'unds', 'u', 'piezas', 'pieza', 'pza', 'pzas', 'pcs', 'pc'].includes(norm)) return 'unidades';
+  if (['conos', 'cono', 'bobinas', 'bobina'].includes(norm)) return 'conos';
+  if (['rollos', 'rollo', 'rll'].includes(norm)) return 'rollos';
+  if (['gruesas', 'gruesa', 'gr'].includes(norm)) return 'gruesas';
+  if (['docenas', 'docena', 'doc'].includes(norm)) return 'docenas';
+  if (['paquetes', 'paquete', 'pqt', 'paq'].includes(norm)) return 'paquetes';
+  if (['cajas', 'caja', 'cj'].includes(norm)) return 'cajas';
+  if (['millares', 'millar', 'mil'].includes(norm)) return 'millares';
+  if (['yardas', 'yarda', 'yd', 'yds'].includes(norm)) return 'yardas';
+  if (['cm', 'centimetros', 'centimetro'].includes(norm)) return 'cm';
+  if (['m', 'metros', 'metro', 'mts', 'mt'].includes(norm)) return 'm';
+
+  return defaultUnit;
+}
 export function detectCSVType(headers: string[]): DetectedCSVType {
   const norm = headers.map(normalizeKey);
 
@@ -418,55 +720,31 @@ export function parseRawMaterialsCSV(
     const name = String(rawName || sku || `Insumo ${sku}`).trim();
 
     // Category
-    const { value: rawCat } = getRowValue(row, ['Categoria', 'Category', 'Tipo', 'Rubro', 'Grupo']);
-    const catStr = String(rawCat || 'Tela').trim();
-    let category: MaterialCategory = 'Tela';
-    const normCat = normalizeKey(catStr);
-
-    if (normCat.includes('av') || normCat.includes('fornit') || normCat.includes('boton') || normCat.includes('crem')) {
-      category = 'Avío / Fornitura';
-    } else if (normCat.includes('hil') || normCat.includes('yarn')) {
-      category = 'Hilo';
-    } else if (normCat.includes('entre') || normCat.includes('fusion')) {
-      category = 'Entretela';
-    } else if (normCat.includes('emp') || normCat.includes('etiq') || normCat.includes('bolsa')) {
-      category = 'Empaque / Etiqueta';
-    } else if (normCat.includes('tel') || normCat.includes('fabric')) {
-      category = 'Tela';
-    } else {
-      rowIssues.push({
-        rowNumber,
-        column: 'Categoria',
-        value: catStr,
-        severity: 'warning',
-        issue: `Categoría "${catStr}" no estándar`,
-        suggestion: 'Se asignó "Tela". Opciones válidas: Tela, Avío / Fornitura, Hilo, Entretela, Empaque / Etiqueta.',
-      });
-    }
+    const { value: rawCat } = getRowValue(row, [
+      'Categoria',
+      'Category',
+      'Tipo',
+      'Tipo_Insumo',
+      'TipoInsumo',
+      'Rubro',
+      'Grupo',
+      'Clase',
+      'Familia',
+      'Clasificacion',
+      'Linea',
+    ]);
+    const category: MaterialCategory = resolveMaterialCategory(rawCat, sku, name);
 
     // Unit
-    const { value: rawUnit } = getRowValue(row, ['Unidad_Medida', 'Unidad', 'Unit', 'Medida']);
-    const unitStr = String(rawUnit || 'm').trim();
-    let unit: MaterialUnit = 'm';
-    const normUnit = normalizeKey(unitStr);
-
-    if (['kg', 'kilos', 'kilogramos', 'kilo'].includes(normUnit)) unit = 'kg';
-    else if (['unidades', 'und', 'u', 'piezas', 'pza', 'pcs', 'unidad'].includes(normUnit)) unit = 'unidades';
-    else if (['yardas', 'yd', 'yds', 'yarda'].includes(normUnit)) unit = 'yardas';
-    else if (['conos', 'cono'].includes(normUnit)) unit = 'conos';
-    else if (['gruesas', 'gr', 'gruesa'].includes(normUnit)) unit = 'gruesas';
-    else if (['docenas', 'doc', 'docena'].includes(normUnit)) unit = 'docenas';
-    else if (['m', 'metros', 'metro', 'mts'].includes(normUnit)) unit = 'm';
-    else {
-      rowIssues.push({
-        rowNumber,
-        column: 'Unidad_Medida',
-        value: unitStr,
-        severity: 'warning',
-        issue: `Unidad de medida "${unitStr}" desconocida`,
-        suggestion: 'Se asumió "m" (metros). Unidades válidas: m, kg, unidades, yardas, conos, gruesas, docenas.',
-      });
-    }
+    const { value: rawUnit } = getRowValue(row, [
+      'Unidad_Compra',
+      'Unidad_Medida',
+      'Unidad',
+      'Unit',
+      'Medida',
+      'UnidadCompra',
+    ]);
+    const unit: MaterialUnit = resolveMaterialUnit(rawUnit, 'm');
 
     // Numeric metrics
     const { value: rawStock } = getRowValue(row, ['Stock_Actual', 'Stock', 'Inventario', 'Existencias', 'Disponible']);
@@ -788,29 +1066,14 @@ export function parseBOMCSV(
     const wastePercent = wasteRes.numberVal;
 
     const { value: rawUnit } = getRowValue(row, ['Unidad_Medida', 'Unidad', 'Unit', 'Medida']);
-    const unitStr = String(rawUnit || 'm').trim();
-    let unit: MaterialUnit = 'm';
-    const normUnit = normalizeKey(unitStr);
-    if (['kg', 'kilos'].includes(normUnit)) unit = 'kg';
-    else if (['unidades', 'und', 'u', 'piezas', 'pza'].includes(normUnit)) unit = 'unidades';
-    else if (['yardas', 'yd'].includes(normUnit)) unit = 'yardas';
-    else if (['conos', 'cono'].includes(normUnit)) unit = 'conos';
+    const unit: MaterialUnit = resolveMaterialUnit(rawUnit, 'm');
 
     // Auto-discover material if not existing
     let matchedMat = materialBySku.get(matSku.toUpperCase());
     const materialId = `MAT-${matSku.toUpperCase()}`;
 
     if (!matchedMat && matSku) {
-      let autoCat: MaterialCategory = 'Tela';
-      if (matSku.startsWith('AVI-') || matName.toLowerCase().includes('bot') || matName.toLowerCase().includes('crem')) {
-        autoCat = 'Avío / Fornitura';
-      } else if (matSku.startsWith('HIL-') || matName.toLowerCase().includes('hil')) {
-        autoCat = 'Hilo';
-      } else if (matSku.startsWith('ENT-') || matName.toLowerCase().includes('entre')) {
-        autoCat = 'Entretela';
-      } else if (matSku.startsWith('EMP-') || matName.toLowerCase().includes('etiq') || matName.toLowerCase().includes('bolsa')) {
-        autoCat = 'Empaque / Etiqueta';
-      }
+      const autoCat: MaterialCategory = resolveMaterialCategory('', matSku, matName);
 
       const autoCreatedMat: RawMaterial = {
         id: materialId,

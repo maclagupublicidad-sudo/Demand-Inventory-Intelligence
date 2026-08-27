@@ -25,6 +25,11 @@ import {
   ArrowRight,
   Database,
   HelpCircle,
+  History,
+  Truck,
+  DollarSign,
+  GitCommit,
+  CheckCircle2,
 } from 'lucide-react';
 import { ProductionCycleConfig, AppUser, CompanyTenant } from '../types';
 import { ROLE_LABELS, hasPermission } from '../utils/permissions';
@@ -269,7 +274,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Calendar className="w-3.5 h-3.5 text-[#3A5A40] mr-1.5 shrink-0" />
             <span className="text-[#5F6B61] mr-1 font-medium hidden xl:inline">Ciclo:</span>
             <span className="font-semibold text-[#1C211D] mr-2 truncate max-w-[150px] xl:max-w-[200px]">
-              {cycleConfig.durationMonths}m • {seasonInfo.name.split(' ')[0]}
+              {cycleConfig.durationMonths} {cycleConfig.durationMonths === 1 ? 'mes' : 'meses'} • {seasonInfo.name.split(' ')[0]}
             </span>
             {canManageCycles && (
               <button
@@ -646,6 +651,34 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
+            {/* Kardex de Movimientos */}
+            <button
+              onClick={() => setActiveTab('kardex')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
+                activeTab === 'kardex'
+                  ? 'bg-[#EBF2EC] text-[#233829] font-bold shadow-2xs'
+                  : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
+              }`}
+              id="nav-tab-kardex"
+            >
+              <History className="w-3.5 h-3.5" />
+              <span>Kardex & Movimientos</span>
+            </button>
+
+            {/* Directorio de Proveedores */}
+            <button
+              onClick={() => setActiveTab('proveedores')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
+                activeTab === 'proveedores'
+                  ? 'bg-[#EBF2EC] text-[#233829] font-bold shadow-2xs'
+                  : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
+              }`}
+              id="nav-tab-proveedores"
+            >
+              <Truck className="w-3.5 h-3.5" />
+              <span>Proveedores</span>
+            </button>
+
             {/* Ejecución en Planta & Analítica Temporal (MES) */}
             <button
               onClick={() => setActiveTab('execution')}
@@ -667,6 +700,48 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
+            {/* Control de Calidad */}
+            <button
+              onClick={() => setActiveTab('calidad')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
+                activeTab === 'calidad'
+                  ? 'bg-[#EBF2EC] text-[#233829] font-bold shadow-2xs'
+                  : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
+              }`}
+              id="nav-tab-calidad"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Calidad & QC</span>
+            </button>
+
+            {/* Costeo de Producción */}
+            <button
+              onClick={() => setActiveTab('costeo')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
+                activeTab === 'costeo'
+                  ? 'bg-[#EBF2EC] text-[#233829] font-bold shadow-2xs'
+                  : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
+              }`}
+              id="nav-tab-costeo"
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>Costeo (Taller vs Maquila)</span>
+            </button>
+
+            {/* Trazabilidad */}
+            <button
+              onClick={() => setActiveTab('trazabilidad')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
+                activeTab === 'trazabilidad'
+                  ? 'bg-[#EBF2EC] text-[#233829] font-bold shadow-2xs'
+                  : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
+              }`}
+              id="nav-tab-trazabilidad"
+            >
+              <GitCommit className="w-3.5 h-3.5" />
+              <span>Trazabilidad</span>
+            </button>
+
             {/* Comparativo Inter-Empresas & Benchmarking */}
             <button
               onClick={() => setActiveTab('benchmark')}
@@ -678,7 +753,7 @@ export const Header: React.FC<HeaderProps> = ({
               id="nav-tab-benchmark"
             >
               <BarChart3 className="w-3.5 h-3.5 text-[#1E40AF]" />
-              <span>Comparativo & Benchmark</span>
+              <span>Comparativo</span>
               <span className="px-1.5 py-0.2 bg-[#FAF8F5] border border-[#E6E1D8] text-[9px] font-bold rounded-full text-[#4A544C]">
                 {companies.length}
               </span>
@@ -791,6 +866,34 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
 
               <button
+                onClick={() => handleNavClick('kardex')}
+                className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-colors ${
+                  activeTab === 'kardex'
+                    ? 'bg-[#EBF2EC] text-[#233829]'
+                    : 'text-[#5F6B61] hover:bg-[#FAF8F5]'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <History className="w-4 h-4 text-[#3A5A40]" />
+                  Kardex & Movimientos de Stock
+                </span>
+              </button>
+
+              <button
+                onClick={() => handleNavClick('proveedores')}
+                className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-colors ${
+                  activeTab === 'proveedores'
+                    ? 'bg-[#EBF2EC] text-[#233829]'
+                    : 'text-[#5F6B61] hover:bg-[#FAF8F5]'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <Truck className="w-4 h-4 text-[#3A5A40]" />
+                  Directorio de Proveedores
+                </span>
+              </button>
+
+              <button
                 onClick={() => handleNavClick('execution')}
                 className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-colors ${
                   activeTab === 'execution'
@@ -801,6 +904,48 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="flex items-center gap-2.5">
                   <Factory className="w-4 h-4 text-[#3A5A40]" />
                   Ejecución en Planta & Analítica
+                </span>
+              </button>
+
+              <button
+                onClick={() => handleNavClick('calidad')}
+                className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-colors ${
+                  activeTab === 'calidad'
+                    ? 'bg-[#EBF2EC] text-[#233829]'
+                    : 'text-[#5F6B61] hover:bg-[#FAF8F5]'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-[#3A5A40]" />
+                  Control de Calidad & QC
+                </span>
+              </button>
+
+              <button
+                onClick={() => handleNavClick('costeo')}
+                className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-colors ${
+                  activeTab === 'costeo'
+                    ? 'bg-[#EBF2EC] text-[#233829]'
+                    : 'text-[#5F6B61] hover:bg-[#FAF8F5]'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <DollarSign className="w-4 h-4 text-[#3A5A40]" />
+                  Costeo de Producción (Taller vs Maquila)
+                </span>
+              </button>
+
+              <button
+                onClick={() => handleNavClick('trazabilidad')}
+                className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-colors ${
+                  activeTab === 'trazabilidad'
+                    ? 'bg-[#EBF2EC] text-[#233829]'
+                    : 'text-[#5F6B61] hover:bg-[#FAF8F5]'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <GitCommit className="w-4 h-4 text-[#3A5A40]" />
+                  Trazabilidad End-to-End
                 </span>
               </button>
 

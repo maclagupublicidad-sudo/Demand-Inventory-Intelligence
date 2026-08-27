@@ -32,7 +32,12 @@ export const CycleControlBar: React.FC<CycleControlBarProps> = ({
             </span>
 
             <div className="inline-flex rounded-lg p-0.5 bg-[#F2EEE6] border border-[#E6E1D8] text-xs">
-              {[1, 3, 6, 12].map((m) => (
+              {[
+                { months: 1, label: '1 mes' },
+                { months: 3, label: '3 meses' },
+                { months: 6, label: '6 meses' },
+                { months: 12, label: '12 meses' },
+              ].map(({ months: m, label }) => (
                 <button
                   key={m}
                   onClick={() =>
@@ -41,14 +46,15 @@ export const CycleControlBar: React.FC<CycleControlBarProps> = ({
                       name: `Campaña ${m} Mes${m > 1 ? 'es' : ''} (${seasonInfo.name.split(' ')[0]})`,
                     })
                   }
-                  className={`px-2 sm:px-2.5 py-1 rounded-md font-medium text-xs transition-all touch-manipulation active:scale-95 ${
+                  className={`px-2.5 sm:px-3 py-1 rounded-md font-medium text-xs transition-all touch-manipulation active:scale-95 whitespace-nowrap ${
                     cycleConfig.durationMonths === m
                       ? 'bg-white text-[#3A5A40] font-bold shadow-2xs'
                       : 'text-[#5F6B61] hover:text-[#1C211D]'
                   }`}
                   id={`cycle-duration-${m}m`}
+                  title={`Horizonte de ${m} ${m === 1 ? 'mes' : 'meses'}`}
                 >
-                  {m}m
+                  {label}
                 </button>
               ))}
             </div>
@@ -87,8 +93,12 @@ export const CycleControlBar: React.FC<CycleControlBarProps> = ({
               className="bg-transparent font-semibold text-[#1C211D] text-xs focus:outline-hidden cursor-pointer"
               id="select-demand-mode"
             >
-              <option value="target_driven">Metas Escaladas ({cycleConfig.durationMonths}m)</option>
-              <option value="history_driven">Histórico + Temporada ({cycleConfig.durationMonths}m)</option>
+              <option value="target_driven">
+                Metas Escaladas ({cycleConfig.durationMonths} {cycleConfig.durationMonths === 1 ? 'mes' : 'meses'})
+              </option>
+              <option value="history_driven">
+                Histórico + Temporada ({cycleConfig.durationMonths} {cycleConfig.durationMonths === 1 ? 'mes' : 'meses'})
+              </option>
             </select>
           </div>
 

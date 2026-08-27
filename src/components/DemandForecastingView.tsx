@@ -178,7 +178,12 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
               Horizonte:
             </span>
             <div className="inline-flex rounded-lg p-0.5 bg-white border border-[#E6E1D8] text-xs shadow-2xs">
-              {[1, 3, 6, 12].map((months) => (
+              {[
+                { months: 1, label: '1 mes' },
+                { months: 3, label: '3 meses' },
+                { months: 6, label: '6 meses' },
+                { months: 12, label: '12 meses' },
+              ].map(({ months, label }) => (
                 <button
                   key={months}
                   onClick={() =>
@@ -187,14 +192,14 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
                       name: `Campaña ${months} Mes${months > 1 ? 'es' : ''} (${seasonInfo.name.split(' ')[0]})`,
                     })
                   }
-                  className={`px-3 py-1 rounded-md text-xs font-semibold transition-all touch-manipulation active:scale-95 ${
+                  className={`px-3 py-1 rounded-md text-xs font-semibold transition-all touch-manipulation active:scale-95 whitespace-nowrap ${
                     cycleConfig.durationMonths === months
                       ? 'bg-[#3A5A40] text-white shadow-xs'
                       : 'text-[#5F6B61] hover:text-[#1C211D] hover:bg-[#FAF8F5]'
                   }`}
                   id={`forecasting-horizon-${months}m`}
                 >
-                  {months}m
+                  {label}
                 </button>
               ))}
             </div>
@@ -389,7 +394,9 @@ export const DemandForecastingView: React.FC<DemandForecastingViewProps> = ({
                 <th className="px-4 py-3">Colección / Categoría</th>
                 <th className="px-4 py-3 text-right">Demanda Base</th>
                 <th className="px-4 py-3 text-center">Temporada</th>
-                <th className="px-4 py-3 text-right">Proyección ({cycleConfig.durationMonths}m)</th>
+                <th className="px-4 py-3 text-right">
+                  Proyección ({cycleConfig.durationMonths} {cycleConfig.durationMonths === 1 ? 'mes' : 'meses'})
+                </th>
                 <th className="px-4 py-3 text-right">Stock Terminado</th>
                 <th className="px-4 py-3 text-right">En Proceso (WIP)</th>
                 <th className="px-4 py-3 text-right">Meta Planificada</th>

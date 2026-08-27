@@ -100,6 +100,76 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
     return dailyMap;
   }, [garments]);
 
+  // Category styling helper
+  const getCategoryStyle = (category: MaterialCategory) => {
+    switch (category) {
+      case 'Tela':
+        return {
+          bg: 'bg-blue-50',
+          text: 'text-blue-800',
+          border: 'border-blue-200',
+          dot: 'bg-blue-500',
+          label: 'Tela / Tejido',
+        };
+      case 'Hilo':
+        return {
+          bg: 'bg-amber-50',
+          text: 'text-amber-900',
+          border: 'border-amber-200',
+          dot: 'bg-amber-500',
+          label: 'Hilo / Hilado',
+        };
+      case 'Botón / Broche':
+        return {
+          bg: 'bg-purple-50',
+          text: 'text-purple-800',
+          border: 'border-purple-200',
+          dot: 'bg-purple-500',
+          label: 'Botón / Broche',
+        };
+      case 'Cremallera':
+        return {
+          bg: 'bg-emerald-50',
+          text: 'text-emerald-800',
+          border: 'border-emerald-200',
+          dot: 'bg-emerald-500',
+          label: 'Cremallera / Cierre',
+        };
+      case 'Avío / Fornitura':
+        return {
+          bg: 'bg-indigo-50',
+          text: 'text-indigo-800',
+          border: 'border-indigo-200',
+          dot: 'bg-indigo-500',
+          label: 'Avío / Fornitura',
+        };
+      case 'Entretela':
+        return {
+          bg: 'bg-teal-50',
+          text: 'text-teal-800',
+          border: 'border-teal-200',
+          dot: 'bg-teal-500',
+          label: 'Entretela',
+        };
+      case 'Empaque / Etiqueta':
+        return {
+          bg: 'bg-orange-50',
+          text: 'text-orange-900',
+          border: 'border-orange-200',
+          dot: 'bg-orange-500',
+          label: 'Empaque / Etiqueta',
+        };
+      default:
+        return {
+          bg: 'bg-stone-100',
+          text: 'text-stone-700',
+          border: 'border-stone-200',
+          dot: 'bg-stone-500',
+          label: category || 'Otro Insumo',
+        };
+    }
+  };
+
   // Category counts
   const categoriesList: { key: string; label: string; count: number }[] = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -111,11 +181,12 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
       { key: 'ALL', label: 'Todas las Categorías', count: materials.length },
       { key: 'Tela', label: 'Telas / Tejidos', count: counts['Tela'] || 0 },
       { key: 'Hilo', label: 'Hilos / Hilados', count: counts['Hilo'] || 0 },
-      { key: 'Empaque / Etiqueta', label: 'Empaque / Etiquetas', count: counts['Empaque / Etiqueta'] || 0 },
-      { key: 'Avío / Fornitura', label: 'Avíos / Fornituras', count: counts['Avío / Fornitura'] || 0 },
       { key: 'Botón / Broche', label: 'Botones / Broches', count: counts['Botón / Broche'] || 0 },
       { key: 'Cremallera', label: 'Cremalleras / Cierres', count: counts['Cremallera'] || 0 },
+      { key: 'Avío / Fornitura', label: 'Avíos / Fornituras', count: counts['Avío / Fornitura'] || 0 },
       { key: 'Entretela', label: 'Entretelas', count: counts['Entretela'] || 0 },
+      { key: 'Empaque / Etiqueta', label: 'Empaque / Etiquetas', count: counts['Empaque / Etiqueta'] || 0 },
+      { key: 'Otro', label: 'Otros Insumos', count: counts['Otro'] || 0 },
     ];
   }, [materials]);
 
@@ -594,7 +665,9 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
             <thead className="bg-[#FAF8F5] text-[#5F6B61] font-bold border-b border-[#E6E1D8] text-[10px] uppercase tracking-wider">
               <tr>
                 <th className="p-3.5">SKU / Insumo</th>
-                <th className="p-3.5">Categoría & Rendimiento</th>
+                <th className="p-3.5">Categoría</th>
+                <th className="p-3.5">Unidad (Compra / Uso)</th>
+                <th className="p-3.5">Detalle Técnico</th>
                 <th className="p-3.5 text-right">
                   <div className="flex items-center justify-end gap-1">
                     <span>Stock Disponible (Físico)</span>
@@ -626,7 +699,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
             <tbody className="divide-y divide-[#F2EEE6]">
               {filteredMaterials.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-10 text-center">
+                  <td colSpan={12} className="p-10 text-center">
                     <div className="space-y-2.5 max-w-sm mx-auto">
                       <Package className="w-10 h-10 text-[#D5CEC2] mx-auto" />
                       <div className="text-sm font-bold text-[#1C211D]">
@@ -655,13 +728,14 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                   const isBelowSafety = mat.currentStock < safetyQty;
                   const isZeroStock = mat.currentStock <= 0;
                   const totalProjected = mat.currentStock + (mat.inTransitStock || 0);
+                  const pUnit = mat.purchaseUnit || mat.unit;
+                  const uUnit = mat.usageUnit || mat.unit;
+                  const yFactor = mat.yieldFactor || 1.0;
                   const hasYieldConversion = Boolean(
                     (mat.yieldFactor && mat.yieldFactor !== 1.0) ||
                     (mat.purchaseUnit && mat.usageUnit && mat.purchaseUnit !== mat.usageUnit)
                   );
-                  const pUnit = mat.purchaseUnit || mat.unit;
-                  const uUnit = mat.usageUnit || mat.unit;
-                  const yFactor = mat.yieldFactor || 1.0;
+                  const catStyle = getCategoryStyle(mat.category);
 
                   return (
                     <tr
@@ -670,7 +744,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                         !isActive ? 'bg-stone-50/60 opacity-75' : ''
                       }`}
                     >
-                      {/* SKU & Name */}
+                      {/* 1. SKU & Name */}
                       <td className="p-3.5">
                         <div className="font-mono text-[11px] font-bold text-[#3A5A40] uppercase">
                           {mat.sku}
@@ -681,7 +755,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                         {mat.color && (
                           <div className="text-[10px] text-[#5F6B61] flex items-center gap-1 mt-0.5">
                             <span className="w-2 h-2 rounded-full bg-[#8F9990]"></span>
-                            Color/Tono: {mat.color}
+                            Color: {mat.color}
                           </div>
                         )}
                         {usingGarments.length > 0 && (
@@ -691,32 +765,72 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                         )}
                       </td>
 
-                      {/* Category & Textile Specifics & Yield */}
+                      {/* 2. Categoría (Badge separado) */}
                       <td className="p-3.5">
-                        <div className="flex flex-wrap items-center gap-1">
-                          <span className="px-2 py-0.5 bg-[#F2EEE6] text-[#5F6B61] rounded text-[10px] font-semibold">
-                            {mat.category}
-                          </span>
-                          {hasYieldConversion && (
-                            <span className="px-1.5 py-0.5 bg-[#EBF2EC] text-[#3A5A40] border border-[#D4E3D7] rounded text-[9px] font-bold flex items-center gap-1" title={mat.yieldDescription || `1 ${pUnit} = ${yFactor} ${uUnit}`}>
-                              <ArrowRightLeft className="w-2.5 h-2.5" />
-                              1 {pUnit} = {yFactor} {uUnit}
-                            </span>
-                          )}
-                        </div>
-                        {mat.widthMeters && (
-                          <div className="text-[10px] text-[#8F9990] mt-0.5">
-                            Ancho: {mat.widthMeters}m
-                          </div>
-                        )}
-                        {mat.weightGsm && (
-                          <div className="text-[10px] text-[#8F9990]">
-                            Gramaje: {mat.weightGsm} g/m²
-                          </div>
-                        )}
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${catStyle.dot}`}></span>
+                          {catStyle.label}
+                        </span>
                       </td>
 
-                      {/* Stock Actual Disponible (Físico) */}
+                      {/* 3. Unidad de Medida (Compra / Confección separada) */}
+                      <td className="p-3.5">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-[#5F6B61]">Compra:</span>
+                            <span className="px-2 py-0.5 bg-[#FAF8F5] border border-[#D5CEC2] rounded text-[10px] font-bold text-[#1C211D] uppercase">
+                              {pUnit}
+                            </span>
+                          </div>
+                          {hasYieldConversion ? (
+                            <>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-[#5F6B61]">Uso:</span>
+                                <span className="px-1.5 py-0.5 bg-[#EBF2EC] text-[#2D4632] rounded text-[10px] font-semibold">
+                                  {uUnit}
+                                </span>
+                              </div>
+                              <div
+                                className="text-[9px] text-[#3A5A40] font-bold font-mono bg-[#EBF2EC]/70 px-1.5 py-0.5 rounded border border-[#D4E3D7] inline-flex items-center gap-1 mt-0.5"
+                                title={mat.yieldDescription || `1 ${pUnit} = ${yFactor} ${uUnit}`}
+                              >
+                                <ArrowRightLeft className="w-2.5 h-2.5 shrink-0" />
+                                1 {pUnit} = {yFactor} {uUnit}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-[10px] text-[#8F9990]">
+                              (Uso directo: {uUnit})
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* 4. Detalle Técnico */}
+                      <td className="p-3.5">
+                        <div className="space-y-0.5 text-[11px] text-[#5F6B61]">
+                          {mat.widthMeters ? (
+                            <div>
+                              Ancho: <strong className="text-[#1C211D]">{mat.widthMeters} m</strong>
+                            </div>
+                          ) : null}
+                          {mat.weightGsm ? (
+                            <div>
+                              Gramaje: <strong className="text-[#1C211D]">{mat.weightGsm} g/m²</strong>
+                            </div>
+                          ) : null}
+                          <div>
+                            Merma: <strong className="text-[#1C211D]">{mat.defaultWastePercent || 3}%</strong>
+                          </div>
+                          {!mat.widthMeters && !mat.weightGsm && (
+                            <span className="text-[10px] text-[#8F9990] italic">Estándar</span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* 5. Stock Actual Disponible (Físico) */}
                       <td className="p-3.5 text-right font-bold text-[#1C211D]">
                         <div className="flex items-center justify-end gap-1.5">
                           {isZeroStock ? (
@@ -748,7 +862,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                         </div>
                       </td>
 
-                      {/* En Tránsito (Comprado) */}
+                      {/* 6. En Tránsito (Comprado) */}
                       <td className="p-3.5 text-right">
                         {(mat.inTransitStock || 0) > 0 ? (
                           <div>
@@ -764,7 +878,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                         )}
                       </td>
 
-                      {/* Total Proyectado */}
+                      {/* 7. Total Proyectado */}
                       <td className="p-3.5 text-right font-mono font-bold text-[#1C211D]">
                         <div className="text-xs">
                           {totalProjected.toLocaleString()} <span className="text-[10px] font-normal text-[#5F6B61]">{pUnit}</span>
@@ -774,18 +888,18 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                         </div>
                       </td>
 
-                      {/* Stock de Seguridad */}
+                      {/* 8. Stock de Seguridad */}
                       <td className="p-3.5 text-right text-[#5F6B61]">
                         <div className="font-bold text-[#1C211D] font-mono text-xs">
                           {safetyQty.toLocaleString()} {pUnit}
                         </div>
                         <div className="text-[10px] text-[#8F9990] flex items-center justify-end gap-1 mt-0.5">
                           <ShieldCheck className="w-3 h-3 text-[#3A5A40]" />
-                          <span>{mat.safetyStockDays || 15} días cobertura</span>
+                          <span>{mat.safetyStockDays || 15} días</span>
                         </div>
                       </td>
 
-                      {/* MOQ & Cost */}
+                      {/* 9. MOQ & Cost */}
                       <td className="p-3.5 text-right">
                         <div className="font-bold text-[#1C211D] font-mono">
                           {formatCOP(mat.unitCost, false)}
@@ -795,7 +909,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                         </div>
                       </td>
 
-                      {/* Supplier & Lead Time */}
+                      {/* 10. Supplier & Lead Time */}
                       <td className="p-3.5">
                         <div className="font-semibold text-[#1C211D] truncate max-w-[140px]">
                           {mat.supplierName || 'Proveedor General'}
@@ -806,7 +920,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                         </div>
                       </td>
 
-                      {/* Status Toggle Button */}
+                      {/* 11. Status Toggle Button */}
                       <td className="p-3.5 text-center">
                         <button
                           onClick={() => onToggleMaterialActive(mat.id)}
@@ -831,7 +945,7 @@ export const RawMaterialsManager: React.FC<RawMaterialsManagerProps> = ({
                         </button>
                       </td>
 
-                      {/* Actions */}
+                      {/* 12. Actions */}
                       <td className="p-3.5 text-center">
                         <div className="flex items-center justify-center space-x-1">
                           {/* Quick Adjust Button */}
