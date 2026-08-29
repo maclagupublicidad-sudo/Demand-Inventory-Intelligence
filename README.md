@@ -1,7 +1,7 @@
 # 🧵 TEXORA — Inteligencia para la producción textil
 
 > **Planifica. Compra. Produce. Controla.**  
-> Plataforma integral Multi-Empresa de Inteligencia de Demanda, Cálculo MRP de Confección, Fichas Técnicas (BOM/SAM/QC), Costeo Taller vs. Maquila, Ejecución en Planta (MES), Benchmarking Inter-Empresas y Control de Accesos por Roles (RBAC).
+> Plataforma integral Multi-Empresa de Inteligencia de Demanda, Cálculo MRP de Confección, Fichas Técnicas (BOM/SAM/QC), Costeo Taller vs. Maquila, Kardex de Inventario, Directorio de Proveedores, Control de Calidad (QC), Trazabilidad End-to-End, Ejecución en Planta (MES), Benchmarking Inter-Empresas y Control de Accesos por Roles (RBAC).
 
 ---
 
@@ -15,32 +15,37 @@
    - [3. Proyección de Demanda & Estacionalidad Textil](#3-proyección-de-demanda--estacionalidad-textil)
    - [4. Fichas Técnicas (Tech Packs), BOM & Tiempos SAM](#4-fichas-técnicas-tech-packs-bom--tiempos-sam)
    - [5. Conversión de Unidades de Compra a Unidades de Confección](#5-conversión-de-unidades-de-compra-a-unidades-de-confección)
-   - [6. Simulador de Costeo: Taller Propio vs. Maquila Satélite](#6-simulador-de-costeo-taller-propio-vs-maquila-satélite)
-   - [7. Motor de Cálculo MRP (Material Requirements Planning)](#7-motor-de-cálculo-mrp-material-requirements-planning)
-   - [8. Ejecución en Planta & Control de Piso (MES)](#8-ejecución-en-planta--control-de-piso-mes)
-   - [9. Benchmarking Comparativo Inter-Empresas](#9-benchmarking-comparativo-inter-empresas)
-   - [10. Gestión de Órdenes de Compra & Abastecimiento](#10-gestión-de-órdenes-de-compra--abastecimiento)
-   - [11. Demo Interactiva & Guía de Botones](#11-demo-interactiva--guía-de-botones)
-   - [12. Control de Acceso por Roles (RBAC)](#12-control-de-acceso-por-roles-rbac)
-   - [13. Simulador "What-If" & Asesor IA Gemini](#13-simulador-what-if--asesor-ia-gemini)
-   - [14. Centro de Datos CSV & Exportación PDF](#14-centro-de-datos-csv--exportación-pdf)
-4. [Estructura del Proyecto](#-estructura-del-proyecto)
-5. [Cuentas de Usuario y Matriz de Permisos](#-cuentas-de-usuario-y-matriz-de-permisos)
-6. [Modelos Matemáticos y Fórmulas del Motor](#-modelos-matemáticos-y-fórmulas-del-motor)
-7. [Instalación, Ejecución & Despliegue en Producción (Cloud Run, Vercel, VPS)](#-instalación-ejecución--despliegue-en-producción)
-8. [Puesta en Marcha en Ceros (Ready to Deploy)](#-puesta-en-marcha-en-ceros-ready-to-deploy)
-9. [Variables de Entorno](#-variables-de-entorno)
+   - [6. Motor de Cálculo MRP (Material Requirements Planning)](#6-motor-de-cálculo-mrp-material-requirements-planning)
+   - [7. Kardex de Inventario & Movimientos de Stock](#7-kardex-de-inventario--movimientos-de-stock)
+   - [8. Directorio Maestro de Proveedores](#8-directorio-maestro-de-proveedores)
+   - [9. Ejecución en Planta & Control de Piso (MES)](#9-ejecución-en-planta--control-de-piso-mes)
+   - [10. Control de Calidad & Inspecciones (QC)](#10-control-de-calidad--inspecciones-qc)
+   - [11. Costeo de Producción: Taller Propio vs. Maquila Satélite](#11-costeo-de-producción-taller-propio-vs-maquila-satélite)
+   - [12. Trazabilidad Integral End-to-End](#12-trazabilidad-integral-end-to-end)
+   - [13. Benchmarking Comparativo Inter-Empresas](#13-benchmarking-comparativo-inter-empresas)
+   - [14. Gestión de Órdenes de Compra & Abastecimiento](#14-gestión-de-órdenes-de-compra--abastecimiento)
+   - [15. Demo Interactiva & Guía de Botones](#15-demo-interactiva--guía-de-botones)
+   - [16. Control de Acceso por Roles (RBAC)](#16-control-de-acceso-por-roles-rbac)
+   - [17. Simulador "What-If" & Asesor IA Gemini](#17-simulador-what-if--asesor-ia-gemini)
+   - [18. Centro de Datos CSV & Exportación PDF](#18-centro-de-datos-csv--exportación-pdf)
+4. [Guía de Importación CSV y Secuencia Recomendada (1 ➔ 2 ➔ 3)](#-guía-de-importación-csv-y-secuencia-recomendada)
+5. [Estructura del Proyecto](#-estructura-del-proyecto)
+6. [Cuentas de Usuario y Matriz de Permisos](#-cuentas-de-usuario-y-matriz-de-permisos)
+7. [Modelos Matemáticos y Fórmulas del Motor](#-modelos-matemáticos-y-fórmulas-del-motor)
+8. [Instalación, Ejecución & Despliegue en Producción (Cloud Run, Docker, VPS)](#-instalación-ejecución--despliegue-en-producción)
+9. [Puesta en Marcha en Ceros (Ready to Deploy)](#-puesta-en-marcha-en-ceros-ready-to-deploy)
+10. [Variables de Entorno](#-variables-de-entorno)
 
 ---
 
 ## 🚀 Visión General
 
-**TEXORA** es la solución tecnológica diseñada para resolver los desafíos más críticos en la cadena de confección y manufactura textil:
+**TEXORA** es la solución tecnológica de software modular diseñada específicamente para resolver los desafíos operativos y financieros más críticos en la manufactura y confección textil:
 
-- **Planifica**: Proyecta la demanda por colecciones y temporadas comerciales, calculando lotes óptimos con amortiguadores de estacionalidad.
+- **Planifica**: Proyecta la demanda por colecciones y temporadas comerciales (Escolar, Día de la Madre, Amor y Amistad, Navidad), calculando lotes óptimos con amortiguadores de estacionalidad.
 - **Compra**: Motor MRP determinístico que calcula consumos netos de rollos de tela, forros, avíos e hilos, ajustando automáticamente al Lote Mínimo de Compra (MOQ) y emitiendo órdenes de compra agrupadas.
-- **Produce**: Gestión integral de Fichas Técnicas (BOM), tiempos estándar de confección (SAM), rutas de costura por maquinaria y órdenes de producción (OP) en piso de planta con auditoría de mermas en tiempo real.
-- **Controla**: Comparativas de rentabilidad (Taller Interno vs. Maquila Satélite), control de calidad (QC) con tolerancias milimétricas, benchmarking comparativo y seguridad granular basada en roles (RBAC).
+- **Produce**: Gestión integral de Fichas Técnicas (BOM), tiempos estándar de confección (SAM), balanceo de líneas y órdenes de producción (OP) en piso de planta con auditoría de mermas en tiempo real.
+- **Controla**: Comparativas de rentabilidad (Taller Interno vs. Maquila Satélite), control de calidad (QC) con tolerancias milimétricas, trazabilidad total de lote de tela a prenda y seguridad granular basada en roles (RBAC).
 
 ---
 
@@ -106,40 +111,67 @@
 - **Calculadora Interactiva de Lotes en Ficha Técnica**: Simulación instantánea del consumo total para 1, 10, 50, 100, 500 o $N$ prendas con validación de cobertura de stock en bodega.
 - **Glosario Textil Integrado (Tooltips)**: Explicación contextual de términos clave (*MOQ, Lead Time, Merma, SAM, BOM, Requerimiento Bruto y Neto*) sin saturar la interfaz.
 
-### 6. Simulador de Costeo: Taller Propio vs. Maquila Satélite
-- **Costeo Integral**: Materia prima directa (telas + avíos del BOM).
-- **Taller Interno**: Mano de Obra Directa (MOD) según SAM y tarifa por minuto + Costos Indirectos de Fabricación (CIF / Minuto).
-- **Maquila Externa**: Tarifas satélite de corte, ensamble, terminación y fletes.
-- **Comparativa Financiera**: Visualización de costo unitario y margen bruto proyectado frente al PVP.
-
-### 7. Motor de Cálculo MRP (Material Requirements Planning)
+### 6. Motor de Cálculo MRP (Material Requirements Planning)
 - **Consumo Efectivo Bruto**: Suma de demanda por consumos unitarios ajustados por merma de corte y factores de conversión de unidades.
 - **Stock de Seguridad Dinámico**: Basado en días de cobertura y consumo promedio diario.
 - **Requerimiento Neto & Sugerencia de Compra**: Ajuste automático al Lote Mínimo de Compra (MOQ) del proveedor y cálculo de costo proyectado en COP.
+- **Emisión Rápida de Órdenes**: Generación directa de órdenes de compra con selección múltiple o masiva de materias primas en déficit.
 
-### 8. Ejecución en Planta & Control de Piso (MES)
-- **Órdenes de Producción (OP)**: Emisión, asignación de taller y seguimiento de avance en tiempo real.
-- **Registro por Etapas**: Corte, Confección/Ensamble, Lavandería/Tintorería, Terminación y Empaque.
-- **Auditoría de Mermas**: Comparación de unidades cortadas vs. unidades de primera calidad producidas.
+### 7. Kardex de Inventario & Movimientos de Stock
+- **Auditoría Permanente de Movimientos**: Registro de todas las transacciones de entrada, salida, consumo de producción (OP), ajustes de inventario físico y devoluciones a proveedores.
+- **Trazabilidad de Saldos y Costos**: Registro de costo unitario, valor total, referencia documental (OC, OP, Factura) y usuario responsable.
+- **Filtros Avanzados**: Búsqueda por SKU de material, rango de fechas, tipo de movimiento y motivo de ajuste.
 
-### 9. Benchmarking Comparativo Inter-Empresas
+### 8. Directorio Maestro de Proveedores
+- **Catálogo de Proveedores Homologados**: Ficha comercial con NIT, contacto, teléfono, ciudad, condición de pago (crédito/contado) y calificación de cumplimiento.
+- **Parámetros de Cadena de Suministro**: Lead Time contractual, histórico de entregas a tiempo y portafolio de insumos suministrados vinculados a la base de datos relacional.
+
+### 9. Ejecución en Planta & Control de Piso (MES)
+- **Órdenes de Producción (OP)**: Emisión, asignación de taller interno o maquila satélite y seguimiento de avance en tiempo real.
+- **Ruta de Control por 5 Etapas**:
+  1. ✂️ **Corte y Habilitación**: Registro de tendido, tizado y unidades cortadas reales.
+  2. 🪡 **Confección & Ensamble**: Avance de costura, control de SAM y balance de módulos.
+  3. 🧼 **Lavandería / Tintorería / Estampación**: Procesos húmedos y acabados especiales.
+  4. 🏷️ **Terminación, Ojal y Botón**: Colocación de herrajes, presillas y plancha.
+  5. 📦 **Empaque & Despacho**: Auditoría final y empaque en bolsas individuales.
+- **Auditoría de Mermas**: Comparación de unidades programadas vs. cortadas vs. prendas de primera calidad obtenidas.
+
+### 10. Control de Calidad & Inspecciones (QC)
+- **Inspección de Lotes y Muestreo AQL**: Registro de muestras inspeccionadas por orden de producción.
+- **Clasificación de Calidad**: Conteo de prendas conformes (Primera Calidad), prendas de Segunda y prendas Rechazadas / Destruidas.
+- **Tipificación de Defectos Textil**: Defectos de tela (barras, motas, tono), defectos de costura (costuras reventadas, puntadas sueltas, fruncido), defectos de medidas y manchas de aceite/suciedad.
+
+### 11. Costeo de Producción: Taller Propio vs. Maquila Satélite
+- **Costeo Integral de Materia Prima**: Telas principales, forros, sesgos, elásticos, botones, cremalleras, hilos y empaques del BOM con mermas de corte.
+- **Costeo de Taller Propio**:
+  - Mano de Obra Directa (MOD) según SAM (Corte, Confección y Acabados) y tarifa por minuto de planta.
+  - Costos Indirectos de Fabricación (CIF) por minuto (servicios, depreciación de maquinaria, supervisión).
+- **Costeo de Maquila Satélite**:
+  - Tarifas externas por operación: Corte externo, Confección satélite, Acabados y Transporte/Fletes.
+- **Comparativa Financiera y Margen Bruto**: Simulación de utilidad unitaria y margen bruto (%) frente al Precio de Venta al Público (PVP).
+
+### 12. Trazabilidad Integral End-to-End
+- **Genealogía de Fabricación**: Seguimiento bidireccional desde el rollo de tela y lote de avíos hasta la orden de producción y prendas terminadas.
+- **Auditoría de Cumplimiento**: Registro de fecha, lote, taller asignado, operador y resultado de inspección técnica.
+
+### 13. Benchmarking Comparativo Inter-Empresas
 - **Comparativa de Rendimiento**: Métricas cruzadas de eficiencia de tizado, productividad SAM, costo promedio por prenda y rotación de inventarios entre empresas y sedes.
 
-### 10. Gestión de Órdenes de Compra & Abastecimiento
+### 14. Gestión de Órdenes de Compra & Abastecimiento
 - **Generación Automática**: Conversión de déficits de materiales en órdenes de compra agrupadas por proveedor.
-- **Recepción de Mercancía**: Al marcar como `Recibida`, el sistema actualiza automáticamente el inventario físico disponible.
+- **Recepción de Mercancía**: Al marcar como `Recibida`, el sistema actualiza automáticamente el inventario físico disponible y genera el asiento correspondiente en el Kardex.
 
-### 11. Demo Interactiva & Guía de Botones
+### 15. Demo Interactiva & Guía de Botones
 - **Tour de Botones**: Guía explicativa con buscador integrado para conocer la función y ubicación de cada botón, modal y herramienta del sistema.
 
-### 12. Control de Acceso por Roles (RBAC)
-- **Autenticación Segura**: Múltiples roles preconfigurados (Administrador, Comercial, Ingeniería, Compras, Producción, Calidad) con matriz de 13 permisos granulares.
+### 16. Control de Acceso por Roles (RBAC)
+- **Autenticación Segura**: Múltiples roles preconfigurados (Administrador, Comercial, Ingeniería, Compras, Producción, Calidad) con matriz de 17 permisos granulares.
 
-### 13. Simulador "What-If" & Asesor IA Gemini
-- **Simulación Dinámica**: Variación de demanda, estrés de merma de corte y colchón de seguridad de proveedores.
+### 17. Simulador "What-If" & Asesor IA Gemini
+- **Simulación Dinámica**: Variación de demanda (+/-50%), estrés de merma de corte y colchón de seguridad de proveedores.
 - **Asesor IA**: Recomendaciones estratégicas impulsadas por Gemini API para mitigar cuellos de botella y optimizar compras.
 
-### 14. Centro de Datos CSV & Exportación PDF
+### 18. Centro de Datos CSV & Exportación PDF
 - **Importación/Exportación CSV**: Soporte de Ventas, Insumos y Fichas Técnicas con plantillas descargables y asistente paso a paso con previsualización editable.
 - **Flujo Secuencial Inteligente (1 ➔ 2 ➔ 3)**: El sistema incluye detección automática de orden de dependencias para garantizar consistencia relacional y cálculo de costos sin advertencias.
 - **Exportación Tech Pack PDF**: Documentos técnicos formales con formato listo para impresión y entrega a talleres satélites.
@@ -197,16 +229,17 @@ texora/
     │   ├── AIIntelligencePanel.tsx  # Asesor de IA con Gemini
     │   ├── BOMExplosionView.tsx     # Fichas Técnicas, BOM, SAM, QC y Costeo
     │   ├── ButtonTourModal.tsx      # Demo interactiva y guía de botones
-    │   ├── CSVManagerModal.tsx      # Importador / Exportador CSV
+    │   ├── CSVManagerModal.tsx      # Importador / Exportador CSV y Asistente
     │   ├── CompanyBenchmarkView.tsx # Benchmarking inter-empresas
     │   ├── CompanyManagerModal.tsx  # Administrador de empresas y sedes
     │   ├── CompanyOnboardingView.tsx# Registro de empresa en modo limpio
-    │   ├── CycleControlBar.tsx      # Barra de control de ciclo
+    │   ├── CycleControlBar.tsx      # Barra de control de ciclo en meses
     │   ├── CycleManagementModal.tsx # Configuración de ciclo y temporadas
     │   ├── DashboardOverview.tsx    # Dashboard principal con KPIs
     │   ├── DemandForecastingView.tsx# Proyección de demanda y ventas
     │   ├── GarmentModal.tsx         # Detalle y edición de prendas
     │   ├── Header.tsx               # Barra superior con navegación y perfiles
+    │   ├── InventoryKardexView.tsx  # Kardex y auditoría de movimientos de stock
     │   ├── InventoryMovementModal.tsx# Ajustes manuales de inventario
     │   ├── LoginModal.tsx           # Autenticación y cambio de usuario
     │   ├── MRPCalculatorTable.tsx   # Tabla maestra del motor MRP
@@ -214,15 +247,19 @@ texora/
     │   ├── NewGarmentModal.tsx      # Creación de nuevas prendas
     │   ├── NewMaterialModal.tsx     # Creación de nuevos insumos
     │   ├── NewProductionOrderModal.tsx # Emisión de órdenes de producción (OP)
+    │   ├── ProductionCostingView.tsx # Comparador Taller Propio vs. Maquila
     │   ├── ProductionExecutionView.tsx # Módulo MES de control de piso
     │   ├── PurchaseOrderModal.tsx   # Gestión de órdenes de compra
+    │   ├── QualityControlView.tsx   # Control de calidad, muestreo e inspecciones
     │   ├── RawMaterialsManager.tsx  # Catálogo maestro de insumos
     │   ├── RecordStageModal.tsx     # Registro de avances y mermas por etapa
+    │   ├── SuppliersManagerView.tsx # Directorio maestro de proveedores
+    │   ├── TraceabilityView.tsx     # Trazabilidad integral de lote a producto
     │   ├── UserManagementModal.tsx  # Gestión de usuarios y permisos RBAC
     │   └── WhatIfSimulator.tsx      # Simulador de escenarios What-If
     │
-    ├── data/                        # Datos iniciales y mocks
-    ├── services/                    # Motores de cálculo MRP, CSV y PDF
+    ├── data/                        # Datos iniciales y mocks para demo
+    ├── services/                    # Motores MRP, CSV, PDF y unifiedDatabase
     ├── types/                       # Definiciones TypeScript
     └── utils/                       # Formateadores, permisos y estacionalidad
 ```

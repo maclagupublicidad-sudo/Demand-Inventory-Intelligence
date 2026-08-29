@@ -95,20 +95,20 @@ export default function App() {
         console.error('Error parsing stored companies', e);
       }
     }
-    return DEMO_COMPANIES;
+    return [];
   });
 
   const [activeCompanyId, setActiveCompanyId] = useState<string>(() => {
     const saved = localStorage.getItem('textiliq_active_company_id');
     if (saved) return saved;
-    return DEMO_COMPANIES[0].id;
+    return '';
   });
 
   const [isCompanyManagerOpen, setIsCompanyManagerOpen] = useState<boolean>(false);
 
   // Active Company Reference
   const activeCompany = useMemo(() => {
-    return companies.find((c) => c.id === activeCompanyId) || companies[0] || DEMO_COMPANIES[0];
+    return companies.find((c) => c.id === activeCompanyId) || companies[0] || null;
   }, [companies, activeCompanyId]);
 
   // User & RBAC State
@@ -116,12 +116,13 @@ export default function App() {
     const saved = localStorage.getItem('textiliq_users');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {
         console.error('Error parsing stored users', e);
       }
     }
-    return activeCompany.users && activeCompany.users.length > 0 ? activeCompany.users : INITIAL_USERS;
+    return activeCompany?.users && activeCompany.users.length > 0 ? activeCompany.users : [];
   });
 
   const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
@@ -133,7 +134,7 @@ export default function App() {
         console.error('Error parsing current user', e);
       }
     }
-    return users[0] || INITIAL_USERS[0];
+    return users[0] || null;
   });
 
   // Main Domain State with LocalStorage Persistence
@@ -141,36 +142,39 @@ export default function App() {
     const saved = localStorage.getItem('textiliq_garments');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error(e);
       }
     }
-    return activeCompany.garments || initialGarments;
+    return activeCompany?.garments || [];
   });
 
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>(() => {
     const saved = localStorage.getItem('textiliq_materials');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error(e);
       }
     }
-    return activeCompany.rawMaterials || initialRawMaterials;
+    return activeCompany?.rawMaterials || [];
   });
 
   const [salesRecords, setSalesRecords] = useState<SalesRecord[]>(() => {
     const saved = localStorage.getItem('textiliq_sales');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error(e);
       }
     }
-    return activeCompany.salesRecords || sampleSalesRecords;
+    return activeCompany?.salesRecords || [];
   });
 
   const [cycleConfig, setCycleConfig] = useState<ProductionCycleConfig>(() => {
@@ -182,31 +186,33 @@ export default function App() {
         console.error(e);
       }
     }
-    return activeCompany.cycleConfig || initialCycleConfig;
+    return activeCompany?.cycleConfig || initialCycleConfig;
   });
 
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(() => {
     const saved = localStorage.getItem('textiliq_orders');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error(e);
       }
     }
-    return activeCompany.purchaseOrders || initialPurchaseOrders;
+    return activeCompany?.purchaseOrders || [];
   });
 
   const [productionOrders, setProductionOrders] = useState<ProductionOrder[]>(() => {
     const saved = localStorage.getItem('textiliq_production_orders');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error(e);
       }
     }
-    return activeCompany.productionOrders || initialProductionOrders;
+    return activeCompany?.productionOrders || [];
   });
 
   // Automatically save domain state changes to local storage

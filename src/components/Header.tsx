@@ -145,14 +145,14 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-5 h-5 rounded-md text-white text-[10px] font-black flex items-center justify-center shadow-2xs shrink-0"
                   style={{ backgroundColor: activeCompany?.brandColor || '#3A5A40' }}
                 >
-                  {activeCompany?.name.substring(0, 2).toUpperCase() || 'EM'}
+                  {activeCompany?.name ? activeCompany.name.substring(0, 2).toUpperCase() : 'TX'}
                 </div>
                 <div className="text-left hidden sm:block max-w-[120px] md:max-w-[170px] truncate">
                   <span className="text-xs font-bold text-[#1C211D] block truncate leading-none">
-                    {activeCompany?.name || 'Seleccionar Empresa'}
+                    {activeCompany?.name || 'Registrar Empresa'}
                   </span>
                   <span className="text-[9px] text-[#5F6B61] truncate block leading-tight mt-0.5 font-mono">
-                    {activeCompany?.city ? `${activeCompany.city.split(',')[0]}` : 'Colombia'}
+                    {activeCompany?.city ? `${activeCompany.city.split(',')[0]}` : 'Sin registrar'}
                   </span>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-[#8F9990] group-hover:text-[#1C211D] transition-colors shrink-0" />
